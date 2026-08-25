@@ -1,210 +1,117 @@
-# CampusIQ+ Frontend — Complete Setup Guide
-> React 18 | MUI v5 | React Router v6 | Chart.js | Axios
+# CampusIQ+ Frontend — Development & User Guide
+
+> **Enterprise Light Theme · React 18 · Material-UI v5 · Roboto Typography · Chart.js · Axios**
 
 ---
 
-## 🔧 Prerequisites
+## 🎨 UI & Design System
 
-| Tool | Version | Download |
-|------|---------|----------|
-| Node.js | 18+ | https://nodejs.org |
-| npm | 9+ | (comes with Node.js) |
-| VS Code | Latest | https://code.visualstudio.com |
+The CampusIQ+ frontend has been upgraded to a modern **Enterprise Light Theme** built with institutional precision:
 
-### VS Code Extensions (Recommended):
-1. **ES7+ React/Redux/React-Native snippets** — `dsznajder.es7-react-js-snippets`
-2. **Prettier - Code formatter** — `esbenp.prettier-vscode`
-3. **ESLint** — `dbaeumer.vscode-eslint`
-
-> ⚠️ **Backend must be running first!** See `campusiq-backend/README.md`
+- **Typography**: Google Font **Roboto** (`300`, `400`, `500`, `700`, `900`) across all headings, body text, inputs, and tables.
+- **Color Palette**:
+  - Primary Canvas: `#f8fafc` (Slate 50)
+  - Cards & Paper: `#ffffff`
+  - Sidebar: Clean `#ffffff` with architectural `#e2e8f0` borders
+  - Active Accents: Soft Blue `#eff6ff` with `#2563eb` indicator highlights
+  - Status Indicators: Enterprise Emerald (`#047857`), Amber (`#b45309`), and Crimson (`#b91c1c`)
+- **CampusMate AI Widget**: Global floating assistant and fullscreen `/chatbot` workspace in matching light theme.
 
 ---
 
-## 🚀 Quick Start (3 commands)
+## 🚀 Quick Start
 
+### Option 1: Using the 1-Click Launchers (from Root Folder)
+```powershell
+# From campusAI root folder:
+.\start-dev.ps1
+```
+*(Or double-click `start-dev.bat`)*
+
+### Option 2: Starting Directly in Frontend Folder
 ```bash
 # Navigate to frontend folder
-cd campusiq-frontend
+cd frontend
 
-# Install dependencies (~2-3 minutes first time)
+# Install dependencies (first time only)
 npm install
 
-# Start the app
+# Start development server
 npm start
 ```
 
-App opens at: **http://localhost:3000**
+- **Local URL**: [http://localhost:3000](http://localhost:3000)
+- **Backend Proxy**: Configured to proxy API calls to `http://localhost:8080`
 
 ---
 
-## 🔑 Login Credentials
+## 🔑 Demo Login Credentials
 
-The login form uses **Username** (not email):
-
-| Username | Password | Role | Dashboard |
-|----------|----------|------|-----------|
-| **admin** | Admin@1234 | Admin | /admin/dashboard |
-| **faculty1** | Admin@1234 | Faculty | /faculty/dashboard |
-| **faculty2** | Admin@1234 | Faculty | /faculty/dashboard |
-| **ravi2268** | Student@1234 | Student | /student/dashboard |
-| **priya2269** | Student@1234 | Student | /student/dashboard |
-| **anjali2270** | Student@1234 | Student | /student/dashboard |
-| **farhan2271** | Student@1234 | Student | /student/dashboard |
-| **sneha2272** | Student@1234 | Student | /student/dashboard |
-
-💡 **Quick Login:** Use the Demo Account buttons on the login page!
+| Username | Password | Role | Landing Route |
+|---|---|---|---|
+| **admin** | `Admin@1234` | Admin | `/admin/dashboard` |
+| **faculty1** | `Admin@1234` | Faculty | `/faculty/dashboard` |
+| **faculty2** | `Admin@1234` | Faculty | `/faculty/dashboard` |
+| **ravi2268** | `Student@1234` | Student | `/student/dashboard` |
+| **priya2269** | `Student@1234` | Student | `/student/dashboard` |
+| **anjali2270** | `Student@1234` | Student | `/student/dashboard` |
 
 ---
 
-## 📁 Project Structure
+## 📁 Frontend Directory Structure
 
 ```
-campusiq-frontend/
+frontend/
 ├── public/
-│   └── index.html              ← Razorpay SDK included
+│   └── index.html              ← Roboto Google Fonts & Razorpay Checkout SDK
 ├── src/
-│   ├── App.js                  ← Routes
-│   ├── index.js                ← Entry point with ThemeProvider
+│   ├── App.js                  ← Route declarations & guards
+│   ├── index.js                ← Root entry with ThemeProvider & AuthProvider
 │   ├── components/
-│   │   ├── ProtectedRoute.jsx  ← Auth guard
+│   │   ├── ProtectedRoute.jsx  ← Role-based route authorization guard
 │   │   ├── layout/
-│   │   │   └── AppLayout.jsx   ← Sidebar + nav
-│   │   └── shared/             ← Reusable components
+│   │   │   └── AppLayout.jsx   ← Light Theme Sidebar, Header, & Profile Bar
+│   │   └── shared/
+│   │       ├── FloatingCampusBot.jsx  ← Global Floating AI Assistant
+│   │       ├── StatCard.jsx           ← Animated metric cards
+│   │       ├── PerformanceBadge.jsx   ← Performance categorization badges
+│   │       ├── ProfilePhotoUploader.jsx← Profile avatar uploader
+│   │       └── PageHeader.jsx         ← Standardized page headers
 │   ├── context/
-│   │   └── AuthContext.js      ← JWT auth state
+│   │   └── AuthContext.js      ← JWT token management & session state
 │   ├── pages/
-│   │   ├── auth/LoginPage.jsx  ← Login with email
-│   │   ├── student/            ← Student dashboard
-│   │   ├── faculty/            ← Faculty attendance marking
-│   │   ├── admin/              ← Admin overview
-│   │   ├── attendance/         ← Attendance tracker
-│   │   ├── exams/              ← Exam schedule
-│   │   ├── results/            ← Academic results
-│   │   ├── fees/               ← Fee management + Razorpay
-│   │   └── ai/                 ← AI insights + chatbot
+│   │   ├── auth/LoginPage.jsx  ← Authentication & OTP verification
+│   │   ├── student/            ← Student Dashboard, Profile, AI Insights
+│   │   ├── faculty/            ← Timetable, Curriculum, Attendance, Grading
+│   │   ├── admin/              ← Executive Dashboard, CGPA Release, Directory
+│   │   ├── attendance/         ← Attendance tracking modules
+│   │   ├── exams/              ← Exam date-sheet and scheduling
+│   │   ├── results/            ← Grade and transcript view
+│   │   ├── fees/               ← Fee payment portal + Razorpay checkout
+│   │   └── ai/ChatbotPage.jsx  ← Dedicated AI Chatbot workspace
 │   ├── services/
-│   │   └── api.js              ← All Axios API calls (FIXED)
+│   │   └── api.js              ← Axios API services with JWT interceptors
 │   └── theme/
-│       └── theme.js            ← MUI theme + design system
-└── .env                        ← Environment variables
+│       ├── theme.js            ← MUI theme overrides (Light Theme + Roboto)
+│       └── animations.js       ← Micro-animations and transition helpers
+├── .env                        ← PORT=3000, BROWSER=none, FAST_REFRESH=true
+└── package.json
 ```
 
 ---
 
-## ⚙️ Environment Variables (.env)
+## ⚙️ Environment Variables (`.env`)
 
 ```env
-REACT_APP_API_BASE_URL=http://localhost:8080/api
-REACT_APP_RAZORPAY_KEY_ID=rzp_test_SI50pw3ScFGRcS
-REACT_APP_VERSION=2.0.0
+BROWSER=none
+PORT=3000
+FAST_REFRESH=true
 ```
 
-If your backend runs on a different port, update `REACT_APP_API_BASE_URL`.
-
 ---
 
-## 📡 Frontend → Backend API Mapping
+## 🛠️ Available Scripts
 
-| Page | API Called | Backend Endpoint |
-|------|-----------|-----------------|
-| Login | authAPI.login | POST /api/auth/login |
-| Student Dashboard | getMyAttendance, getMyResults, getMyFees, getMyPerformance | Multiple |
-| Attendance | getStudentAttendance | GET /api/attendance/student/{id} |
-| Results | getMyResults | GET /api/results/my |
-| Fees | getMyFees, createPaymentOrder | GET /api/fees/my, POST /api/fees/{id}/create-order |
-| Exams | getUpcoming | GET /api/exams/upcoming |
-| AI Insights | getMyPerformance | GET /api/analytics/performance/my |
-| Chatbot | sendMessage | POST /api/chatbot/chat |
-| Faculty | markAttendance | POST /api/attendance/mark |
-
----
-
-## 🐛 Bugs Fixed (from original zip)
-
-1. ✅ `attendanceAPI.getSummary()` → `attendanceAPI.getStudentAttendance()` — method didn't exist
-2. ✅ `resultAPI.getByStudent()` → `resultAPI.getMyResults()` — method didn't exist
-3. ✅ `feeAPI.getHistory()` → `feeAPI.getMyFees()` — method didn't exist
-4. ✅ `aiAPI.performance()` → `aiAPI.getMyPerformance()` — method didn't exist
-5. ✅ `notifAPI.getCount()` → `notifAPI.getUnreadCount()` — method didn't exist
-6. ✅ `examAPI.getUpcoming(60)` → `examAPI.getUpcoming()` — backend takes no param
-7. ✅ `studentAPI` import in AdminDashboard — didn't exist, removed
-8. ✅ Fee field `feeName` → `feeType`, `paidAt` → `paidDate` (entity mismatch)
-9. ✅ Fee status `SUCCESS` → `PAID` (entity enum mismatch)
-10. ✅ Result fields `marks/maxMarks` → `marksObtained/exam.totalMarks`, `percentage`
-11. ✅ Exam fields `examDate/startTime/subject` → `scheduledDate/course`
-12. ✅ Attendance summary computed from raw records (no summary endpoint exists)
-13. ✅ Analytics response normalized (backend fields ≠ component field names)
-14. ✅ Demo login buttons fixed to use real email credentials
-15. ✅ `ProtectedRoute` added `<Outlet />` support for nested routes
-
----
-
-## 🧪 Running Both Together
-
-**Terminal 1 — Backend:**
-```bash
-cd campusiq-fixed/backend
-mvn spring-boot:run
-# Backend: http://localhost:8080
-```
-
-**Terminal 2 — Frontend:**
-```bash
-cd campusiq-frontend
-npm start
-# Frontend: http://localhost:3000
-```
-
-Open **http://localhost:3000** — login with any credentials above!
-
----
-
-## 🐛 Troubleshooting
-
-### "npm install" fails / ERESOLVE error
-```bash
-npm install --legacy-peer-deps
-```
-
-### App starts but shows blank / login doesn't work
-Check browser console (F12) — if you see CORS errors:
-1. Make sure backend is running: `http://localhost:8080/api/auth/login` should respond
-2. Backend application.properties has CORS configured for `http://localhost:3000`
-
-### "Network Error" on API calls
-Backend is not running. Start it first with `mvn spring-boot:run`
-
-### Login says "Invalid username or password"
-Make sure you've run the database schema: `mysql -u root -p < database/campusiq_schema.sql`
-The demo credentials only exist after running the SQL seed data.
-
-### Charts not rendering
-Open VS Code terminal and run: `npm install chart.js react-chartjs-2 --legacy-peer-deps`
-
----
-
-## 🎨 UI Features by Role
-
-### Student
-- Dashboard with attendance radar chart + marks bar chart
-- Attendance page with subject-wise breakdown
-- Results page with grade table
-- Fee management with Razorpay integration
-- Exam schedule
-- AI Performance Insights
-- Study Plan generator
-- CampusMate AI Chatbot
-
-### Faculty
-- Dashboard with attendance marking tool
-- Mark bulk attendance per course per date
-- View results and exams
-
-### Admin
-- System overview with student risk analysis
-- Student performance comparison charts
-- Upcoming exams management
-
----
-
-*CampusIQ+ Frontend | React 18 + MUI v5 | Fixed & Connected to Backend*
+- **`npm start`**: Runs the app in development mode on port 3000.
+- **`npm run build`**: Builds optimized production assets to the `build/` folder.
+- **`npm test`**: Runs unit test suite via Jest.

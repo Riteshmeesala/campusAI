@@ -1,7 +1,7 @@
 # 🎓 CampusIQ+ — Complete Setup Guide
 
 > **AI-Powered Smart Campus Management Platform**  
-> Spring Boot 3.2 · Java 17 · React 18 · MySQL 8 · Ollama AI
+> Spring Boot 3.2 · Java 17+ · React 18 · MySQL 8 · Groq Cloud AI · Light Theme
 
 ---
 
@@ -9,431 +9,203 @@
 
 1. [Prerequisites](#prerequisites)
 2. [Step 1 — Database Setup](#step-1--database-setup)
-3. [Step 2 — Backend Setup](#step-2--backend-setup-spring-boot)
-4. [Step 3 — Ollama AI Setup](#step-3--ollama-ai-setup-optional)
-5. [Step 4 — Frontend Setup](#step-4--frontend-setup-react-18)
-6. [Startup Order](#startup-order)
-7. [Demo Login Credentials](#demo-login-credentials)
-8. [API Reference](#api-reference)
-9. [Troubleshooting](#troubleshooting)
+3. [Step 2 — Backend Configuration](#step-2--backend-configuration)
+4. [Step 3 — Frontend Configuration](#step-3--frontend-configuration)
+5. [Step 4 — Running the Application (1-Click or Manual)](#step-4--running-the-application)
+6. [Demo Login Credentials](#demo-login-credentials)
+7. [Groq AI & Third-Party Keys](#groq-ai--third-party-keys)
+8. [Troubleshooting & FAQs](#troubleshooting--faqs)
 
 ---
 
 ## Prerequisites
 
-Install all of the following before starting:
+Ensure the following tools are installed before starting:
 
-| Software | Version | Download | Verify |
+| Software | Version | Download Link | Verification Command |
 |---|---|---|---|
-| Java JDK | 17 or higher | [adoptium.net](https://adoptium.net) | `java -version` |
-| Apache Maven | 3.8+ | [maven.apache.org](https://maven.apache.org) | `mvn -version` |
-| MySQL Server | 8.0+ | [dev.mysql.com](https://dev.mysql.com/downloads/mysql) | `mysql -V` |
-| Node.js | 18+ | [nodejs.org](https://nodejs.org) | `node -v` |
-| npm | 9+ | bundled with Node.js | `npm -v` |
-| Git | Any | [git-scm.com](https://git-scm.com) | `git --version` |
-| Ollama (AI) | Latest | [ollama.com/download](https://ollama.com/download) | `ollama --version` |
+| **Java JDK** | 17 or higher (tested on 17, 21, 25) | [Adoptium JDK](https://adoptium.net) | `java -version` |
+| **Apache Maven** | 3.8+ | [Apache Maven](https://maven.apache.org) | `mvn -version` |
+| **MySQL Server** | 8.0+ | [MySQL Community Server](https://dev.mysql.com/downloads/mysql/) | `mysql -V` |
+| **Node.js** | 18+ (tested on Node 22) | [Node.js](https://nodejs.org) | `node -v` |
+| **npm** | 9+ | Bundled with Node.js | `npm -v` |
+| **Git** | Any | [git-scm.com](https://git-scm.com) | `git --version` |
 
 ---
 
 ## Step 1 — Database Setup
 
-### 1.1 Create the Database
+### 1.1 Create the MySQL Database
 
-Open your terminal and connect to MySQL:
+Open your terminal or MySQL Workbench and log in:
 
 ```bash
 mysql -u root -p
 ```
 
-Run these commands inside the MySQL shell:
+Execute the database creation statement:
 
 ```sql
 CREATE DATABASE campusiq_v6 CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 EXIT;
 ```
 
-### 1.2 Run the Schema Script
+### 1.2 Import Schema & Migrations
 
-From the project root folder:
+From the root project directory (`campusAI/`):
 
 ```bash
+# 1. Import base schema
 mysql -u root -p campusiq_v6 < database/campusiq_schema.sql
-```
 
-### 1.3 Run the CGPA Migration
-
-```bash
+# 2. Import CGPA migration
 mysql -u root -p campusiq_v6 < "database/student cgpa.sql"
 ```
 
-> **Note:** The schema script drops and recreates all tables. Demo data is **auto-seeded** on first backend startup by `DataInitializer.java` — you do NOT need to insert any data manually.
+> **Note**: Demo data is **automatically seeded** on the first launch of the backend by `DataInitializer.java`. You do not need to manually insert sample records.
 
 ---
 
-## Step 2 — Backend Setup (Spring Boot)
+## Step 2 — Backend Configuration
 
-### 2.1 Configure application.properties
+### 2.1 Edit application.properties
 
-Open `backend/src/main/resources/application.properties` and update these values:
+Open [`backend/src/main/resources/application.properties`](file:///d:/NewPro/campusAI/campusAI/backend/src/main/resources/application.properties) and verify your local settings:
 
-| Property | Default | What to Change |
-|---|---|---|
-| `spring.datasource.password` | `Kalki@12345` | Your MySQL root password |
-| `spring.datasource.url` | `localhost:3306` | If MySQL is on a different host/port |
-| `spring.mail.username` | `kalkitarun04@gmail.com` | Your Gmail address for OTP emails |
-| `spring.mail.password` | *(app password)* | Your 16-char Gmail App Password |
-| `razorpay.key.id` | `rzp_test_SI50pw3ScFGRcS` | Your Razorpay test key (optional) |
-| `razorpay.key.secret` | *(secret)* | Your Razorpay secret (optional) |
-| `ollama.base-url` | `http://localhost:11434` | Change if Ollama runs on another host |
-| `ollama.model` | `llama3` | Change to `llama3.2`, `mistral`, etc. |
+```properties
+# Database Credentials
+spring.datasource.url=jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/campusiq_v6?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+spring.datasource.username=${DB_USERNAME:root}
+spring.datasource.password=${DB_PASSWORD:root}
 
-### 2.2 Gmail App Password Setup (for OTP emails)
+# Groq Cloud AI Configuration
+grok.api-key=${GROQ_API_KEY:your_groq_api_key_here}
+grok.model=qwen/qwen3.6-27b
+grok.base-url=https://api.groq.com/openai
 
-1. Go to your Google Account → **Security**
-2. Enable **2-Step Verification**
-3. Go to **App Passwords** → Select "Mail" → Generate
-4. Copy the 16-character password into `spring.mail.password`
-
-### 2.3 Build and Start the Backend
-
-```bash
-cd backend
-mvn clean install -DskipTests
-mvn spring-boot:run
+# Razorpay Test Keys
+razorpay.key.id=${RAZORPAY_KEY_ID:your_razorpay_key_id}
+razorpay.key.secret=${RAZORPAY_KEY_SECRET:your_razorpay_secret}
 ```
 
-**Backend starts on:** `http://localhost:8080/api`
+### 2.2 Optional: Gmail SMTP for Two-Factor OTP
 
-> **First startup** may take 60–90 seconds as Maven downloads dependencies. All tables and demo data are created automatically.
+If using OTP email authentication:
+1. Go to your Google Account → **Security** → Enable **2-Step Verification**.
+2. Create an **App Password** for "Mail".
+3. Update `spring.mail.username` and `spring.mail.password` in `application.properties`.
 
 ---
 
-## Step 3 — Ollama AI Setup (Optional)
+## Step 3 — Frontend Configuration
 
-Ollama runs `llama3` locally for the CampusMate AI chatbot. If Ollama is not running, the chatbot still works using the **built-in keyword engine** — it never breaks.
+### 3.1 Verify Environment Settings
 
-### 3.1 Install Ollama
+Open [`frontend/.env`](file:///d:/NewPro/campusAI/campusAI/frontend/.env):
 
-**Windows / macOS** — Download the installer from [ollama.com/download](https://ollama.com/download) and run it.
-
-**Linux:**
-
-```bash
-curl -fsSL https://ollama.com/install.sh | sh
+```env
+BROWSER=none
+PORT=3000
+FAST_REFRESH=true
 ```
 
-### 3.2 Pull the AI Model
+### 3.2 Install Dependencies (First-time setup only)
 
-```bash
-ollama pull llama3
-```
-
-> Downloads ~4 GB once. Takes 5–10 minutes depending on your connection.
-
-### 3.3 Start Ollama Server
-
-```bash
-ollama serve
-```
-
-Keep this terminal open while the app is running.
-
-### 3.4 Verify It Works
-
-```bash
-curl http://localhost:11434/api/generate \
-  -d '{"model":"llama3","prompt":"hello","stream":false}'
-```
-
-You should receive a JSON response with a `"response"` field.
-
-> **Tip:** The chatbot automatically detects whether Ollama is running. If unavailable, it falls back to the built-in engine which answers all campus data questions (attendance, CGPA, exams, fees) without any AI.
-
----
-
-## Step 4 — Frontend Setup (React 18)
-
-### 4.1 Install Dependencies
+From the project root:
 
 ```bash
 cd frontend
 npm install
+cd ..
 ```
-
-### 4.2 Check Environment File
-
-The file `frontend/.env` is pre-configured with these defaults:
-
-```env
-REACT_APP_API_BASE_URL=http://localhost:8080/api
-REACT_APP_RAZORPAY_KEY_ID=rzp_test_SI50pw3ScFGRcS
-REACT_APP_APP_NAME=CampusIQ+
-REACT_APP_VERSION=2.0.0
-```
-
-Only change `REACT_APP_API_BASE_URL` if your backend runs on a different host.
-
-### 4.3 Start the Frontend
-
-```bash
-npm start
-```
-
-**Frontend starts on:** `http://localhost:3000`  
-The browser opens automatically.
 
 ---
 
-## Startup Order
+## Step 4 — Running the Application
 
-Always start services in this sequence:
+### ⚡ Method A: The 1-Click Launchers (Recommended)
 
-| # | Service | Command | Expected Output |
-|---|---|---|---|
-| 1 | MySQL | `mysqld` (or system service) | Port 3306 active |
-| 2 | Ollama AI | `ollama serve` | Listening on port 11434 |
-| 3 | Spring Boot | `cd backend && mvn spring-boot:run` | Started on port 8080 |
-| 4 | React | `cd frontend && npm start` | Opens localhost:3000 |
+From the project root folder:
+
+- **Windows Batch (Command Prompt or Explorer)**:
+  ```cmd
+  start-dev.bat
+  ```
+  *(Or double-click `start-dev.bat` in File Explorer)*
+
+- **PowerShell**:
+  ```powershell
+  .\start-dev.ps1
+  ```
+
+This will automatically open two dedicated windows running the Backend (:8080) and Frontend (:3000).
+
+---
+
+### 💻 Method B: Manual Startup in Two Terminals
+
+#### **Terminal 1: Backend**
+```powershell
+cd d:\NewPro\campusAI\campusAI\backend
+mvn spring-boot:run
+```
+*Backend is ready when you see:* `Started CampusIQApplication in X seconds`
+
+#### **Terminal 2: Frontend**
+```powershell
+cd d:\NewPro\campusAI\campusAI\frontend
+npm start
+```
+*Frontend is ready when you see:* `Compiled successfully!`
+
+---
+
+### 🛑 How to Stop All Services
+
+To cleanly terminate both servers and free ports `8080` and `3000`:
+
+```powershell
+.\stop-dev.bat
+```
+*(Or double-click `stop-dev.bat`)*
 
 ---
 
 ## Demo Login Credentials
 
-**Password for ALL accounts: `campusiq@1234`**
-
-| Role | Username | Name | Email | Notes |
-|---|---|---|---|---|
-| `ADMIN` | `admin` | System Admin | admin@campusiq.com | Full system access |
-| `FACULTY` | `faculty1` | Prof. Ramesh Kumar | faculty1@campusiq.com | CS Department |
-| `FACULTY` | `faculty2` | Dr. Priya Lakshmi | faculty2@campusiq.com | Electronics Dept |
-| `STUDENT` | `ravi2268` | Ravi Kumar | ravi@campusiq.com | Low attendance 68%, pending fees |
-| `STUDENT` | `priya2269` | Priya Sharma | priya@campusiq.com | Good performance A+ |
-| `STUDENT` | `anjali2270` | Anjali Reddy | anjali@campusiq.com | Average performance |
-| `STUDENT` | `farhan2271` | Mohammed Farhan | farhan@campusiq.com | Demo student |
-| `STUDENT` | `sneha2272` | Sneha Patel | sneha@campusiq.com | Demo student |
+| Role | Username | Password | Access Area |
+|---|---|---|---|
+| **Admin** | `admin` | `Admin@1234` | Full Administrative & ERP Console |
+| **Faculty** | `faculty1` | `Admin@1234` | Computer Science Department |
+| **Faculty** | `faculty2` | `Admin@1234` | Electronics Department |
+| **Student** | `ravi2268` | `Student@1234` | 3rd Year B.Tech CSE |
+| **Student** | `priya2269` | `Student@1234` | 3rd Year B.Tech CSE |
+| **Student** | `anjali2270` | `Student@1234` | 2nd Year B.Tech ECE |
 
 ---
 
-## API Reference
+## Groq AI & Third-Party Keys
 
-**Base URL:** `http://localhost:8080/api`  
-All endpoints require a `Bearer <JWT>` header **except** `/auth/login` and `/auth/register`.
-
-### Auth
-
-| Method | Endpoint | Description | Roles |
-|---|---|---|---|
-| `POST` | `/auth/login` | Login — returns JWT token | Public |
-| `POST` | `/auth/register` | Register new user | Public |
-| `GET` | `/auth/me` | Get current user profile | All roles |
-
-### Users
-
-| Method | Endpoint | Description | Roles |
-|---|---|---|---|
-| `GET` | `/users/students` | All students | Admin, Faculty |
-| `GET` | `/users/faculty` | All faculty | Admin |
-| `GET` | `/users/me` | Own profile | All roles |
-| `GET` | `/users/stats` | System statistics | Admin |
-| `POST` | `/users/students` | Create student account | Admin |
-| `POST` | `/users/faculty` | Create faculty account | Admin |
-| `PUT` | `/users/{id}` | Update user | Admin |
-| `DELETE` | `/users/{id}` | Delete user | Admin |
-
-### Courses
-
-| Method | Endpoint | Description | Roles |
-|---|---|---|---|
-| `GET` | `/courses` | All courses | All roles |
-| `GET` | `/courses/my` | My courses | Faculty |
-| `GET` | `/courses/{id}` | Course by ID | All roles |
-| `POST` | `/courses` | Create course | Admin |
-| `PUT` | `/courses/{id}` | Update course | Admin |
-| `DELETE` | `/courses/{id}` | Delete course | Admin |
-
-### Attendance
-
-| Method | Endpoint | Description | Roles |
-|---|---|---|---|
-| `POST` | `/attendance/mark` | Mark attendance | Faculty, Admin |
-| `GET` | `/attendance/my` | My attendance records | Student |
-| `GET` | `/attendance/student/{id}` | Student attendance | Admin, Faculty |
-| `GET` | `/attendance/student/{id}/course/{cid}/percentage` | Attendance % | Admin, Faculty |
-| `GET` | `/attendance/course/{cid}/date/{date}` | Course attendance by date | Faculty, Admin |
-
-### Exams
-
-| Method | Endpoint | Description | Roles |
-|---|---|---|---|
-| `GET` | `/exams` | All exams | All roles |
-| `GET` | `/exams/upcoming` | Upcoming exams | All roles |
-| `GET` | `/exams/{id}` | Exam by ID | All roles |
-| `GET` | `/exams/course/{id}` | Exams for a course | All roles |
-| `POST` | `/exams` | Create exam | Admin, Faculty |
-| `PUT` | `/exams/{id}` | Update exam | Admin, Faculty |
-| `DELETE` | `/exams/{id}` | Delete exam | Admin |
-
-### Results
-
-| Method | Endpoint | Description | Roles |
-|---|---|---|---|
-| `POST` | `/results/publish/mid` | Publish mid-term marks | Faculty, Admin |
-| `POST` | `/results/publish/sem` | Publish semester marks | Admin |
-| `GET` | `/results/my` | My results | Student |
-| `GET` | `/results/my/mid` | My mid-term results | Student |
-| `GET` | `/results/my/sem` | My semester results | Student |
-| `GET` | `/results/my/gpa` | My CGPA / SGPA | Student |
-| `GET` | `/results/student/{id}` | Student results | Admin, Faculty |
-| `GET` | `/results/student/{id}/gpa` | Student GPA | Admin, Faculty |
-| `GET` | `/results/student/{id}/semester/{sem}` | Results by semester | Admin, Faculty |
-| `GET` | `/results/exam/{id}` | All results for an exam | Admin, Faculty |
-| `GET` | `/results/all` | All results | Admin |
-
-### Fees
-
-| Method | Endpoint | Description | Roles |
-|---|---|---|---|
-| `GET` | `/fees/my` | My fees | Student |
-| `GET` | `/fees/my/pending-amount` | My total pending amount | Student |
-| `GET` | `/fees/all` | All student fees | Admin |
-| `POST` | `/fees` | Create fee record | Admin |
-| `PUT` | `/fees/{id}` | Update fee | Admin |
-| `PATCH` | `/fees/{id}/status` | Update payment status | Admin |
-| `DELETE` | `/fees/{id}` | Delete fee | Admin |
-| `POST` | `/fees/{id}/create-order` | Create Razorpay order | Student |
-| `POST` | `/fees/verify-payment` | Verify payment | Student |
-
-### CGPA
-
-| Method | Endpoint | Description | Roles |
-|---|---|---|---|
-| `POST` | `/cgpa/publish` | Bulk publish CGPA | Admin |
-| `GET` | `/cgpa/student/{id}` | Student CGPA records | Admin, Faculty |
-| `GET` | `/cgpa/all` | All CGPA records | Admin |
-
-### Notifications
-
-| Method | Endpoint | Description | Roles |
-|---|---|---|---|
-| `GET` | `/notifications` | All notifications | All roles |
-| `GET` | `/notifications/unread` | Unread notifications | All roles |
-| `GET` | `/notifications/unread/count` | Unread count | All roles |
-| `PATCH` | `/notifications/{id}/read` | Mark as read | All roles |
-| `PATCH` | `/notifications/read-all` | Mark all as read | All roles |
-| `POST` | `/notifications/broadcast` | Broadcast message | Admin |
-
-### Announcements
-
-| Method | Endpoint | Description | Roles |
-|---|---|---|---|
-| `POST` | `/announcements/send` | Send announcement | Admin, Faculty |
-| `POST` | `/announcements/send/holiday` | Holiday announcement | Admin |
-| `POST` | `/announcements/send/exam` | Exam announcement | Admin, Faculty |
-| `POST` | `/announcements/send/event` | Event announcement | Admin |
-
-### Schedule
-
-| Method | Endpoint | Description | Roles |
-|---|---|---|---|
-| `POST` | `/schedule` | Add topic taught | Faculty |
-| `GET` | `/schedule/my` | My teaching schedule | Faculty |
-| `GET` | `/schedule/faculty/{id}` | Faculty schedule | Admin |
-| `GET` | `/schedule/course/{id}` | Schedule by course | Admin, Faculty |
-| `GET` | `/schedule/my/date/{date}` | My schedule by date | Faculty |
-| `DELETE` | `/schedule/{id}` | Delete entry | Faculty, Admin |
-
-### Chatbot / AI
-
-| Method | Endpoint | Description | Roles |
-|---|---|---|---|
-| `POST` | `/chatbot/chat` | Ask CampusMate AI `{ message: "..." }` | All roles |
-| `GET` | `/analytics/performance/my` | My performance analytics | Student |
-| `GET` | `/analytics/performance/student/{id}` | Student analytics | Admin, Faculty |
+- **Groq Cloud AI**: Fast conversational responses with streaming API endpoints.
+  - Console: [console.groq.com](https://console.groq.com)
+  - Models supported: `qwen/qwen3.6-27b`, `llama-3.3-70b-versatile`, `mixtral-8x7b-32768`.
+- **Razorpay Sandbox**: Integrated test gateway with instant order verification and payment status callbacks.
+  - Dashboard: [dashboard.razorpay.com](https://dashboard.razorpay.com)
 
 ---
 
-## Troubleshooting
+## Troubleshooting & FAQs
 
-### Backend won't start — Port 8080 already in use
+### Q1: "Port 8080 was already in use"
+**Solution**: Run `.\stop-dev.bat` to kill any orphaned Java or Node processes holding the ports, then restart.
 
-```bash
-# Windows
-netstat -ano | findstr :8080
-taskkill /PID <pid> /F
+### Q2: "CommandNotFoundException: stop-dev.bat" in PowerShell
+**Solution**: In PowerShell, files in the current folder must be prefixed with `.\` (e.g. `.\stop-dev.bat`).
 
-# Linux / macOS
-lsof -ti:8080 | xargs kill -9
-```
+### Q3: Database connection refused on port 3306
+**Solution**: Ensure your MySQL Server service is running:
+- Open Windows Services (`services.msc`) and start `MySQL80`.
+- Verify credentials in `backend/src/main/resources/application.properties`.
 
-### Database connection failed
-
-- Verify MySQL is running: `mysqladmin -u root -p status`
-- Check the password in `application.properties` matches your MySQL root password
-- Ensure the database exists: run `SHOW DATABASES;` in the MySQL shell — you should see `campusiq_v6`
-
-### Maven build failure
-
-```bash
-# Check Java version — must be 17+
-java -version
-
-# Clean build
-mvn clean install -DskipTests
-```
-
-### Frontend shows blank page or 403 on API calls
-
-- Verify the backend is running on port 8080
-- Check `frontend/.env` has `REACT_APP_API_BASE_URL=http://localhost:8080/api`
-- Clear browser `localStorage` (DevTools → Application → Local Storage → Clear All) and log in again
-- JWT token may have expired (default 24 hours) — log out and back in
-
-### Chatbot always returns the same welcome message
-
-- Ensure you have the latest `AIChatbotService.java` (v2 — built-in engine runs first)
-- Restart the Spring Boot backend after replacing any service files
-- The built-in engine works without Ollama — no AI dependency required for campus data queries
-
-### Ollama not responding
-
-```bash
-# Start server (keep terminal open)
-ollama serve
-
-# Pull model if not done yet (~4 GB)
-ollama pull llama3
-
-# Test
-curl http://localhost:11434/api/generate \
-  -d '{"model":"llama3","prompt":"hello","stream":false}'
-```
-
-The app works perfectly without Ollama — the chatbot uses the built-in keyword engine automatically.
-
-### Email OTP not working
-
-1. Go to your Google Account → **Security** → **App Passwords**
-2. Generate a 16-character App Password for "Mail"
-3. Set it as `spring.mail.password` in `application.properties`
-4. Use the 16-char App Password, **not** your regular Gmail password
-
-### 403 Forbidden on API calls
-
-- Clear `localStorage` in DevTools and log in again
-- JWT token likely expired — re-login generates a fresh 24h token
-- Verify `SecurityConfig.java` permits the endpoint for your role
-
----
-
-## Port Reference
-
-| Port | Service | URL |
-|---|---|---|
-| `3000` | React Frontend | http://localhost:3000 |
-| `8080` | Spring Boot API | http://localhost:8080/api |
-| `3306` | MySQL Database | jdbc:mysql://localhost:3306/campusiq_v6 |
-| `11434` | Ollama AI | http://localhost:11434 |
-
----
-
-*CampusIQ+ · Spring Boot 3 + React 18 + MySQL 8 + Ollama AI · Default password: `campusiq@1234`*
+### Q4: UI font or layout styling updates
+**Solution**: The frontend uses **Roboto typography** and **Enterprise Light Theme** configured in `frontend/src/theme/theme.js`. Clear your browser cache or hard reload (`Ctrl + F5`) to refresh styles.

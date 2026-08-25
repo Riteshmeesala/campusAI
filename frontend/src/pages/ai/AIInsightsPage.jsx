@@ -12,6 +12,7 @@ import { useAuth } from '../../context/AuthContext';
 import PageHeader from '../../components/shared/PageHeader';
 import StatCard from '../../components/shared/StatCard';
 import { COLORS } from '../../theme/theme';
+import { anim, shimmerBg } from '../../theme/animations';
 import { toast } from 'react-toastify';
 
 export default function AIInsightsPage() {
@@ -36,6 +37,7 @@ export default function AIInsightsPage() {
   // Student: auto-load own insights
   useEffect(() => {
     if (!isFacultyOrAdmin) loadInsights(null);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isFacultyOrAdmin]);
 
   const loadInsights = (studentId) => {

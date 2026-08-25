@@ -44,8 +44,20 @@ public class User {
     @Column(name = "department", length = 100)
     private String department;
 
+    @Column(name = "home_department", length = 100)
+    private String homeDepartment; // For faculty: their parent department
+
+    @Column(name = "section", length = 50)
+    private String section; // For students: Section A, Section B, etc.
+
+    @Column(name = "semester")
+    private Integer semester; // For students: semester 1-8
+
     @Column(name = "enrollment_number", unique = true, length = 50)
     private String enrollmentNumber;
+
+    @Column(name = "profile_image", columnDefinition = "LONGTEXT")
+    private String profileImage;
 
     @Builder.Default
     @Column(name = "is_active")

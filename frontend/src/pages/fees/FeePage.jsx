@@ -6,16 +6,17 @@ import {
   CircularProgress, Alert, Divider, TextField, Dialog, FormControl, InputLabel,
   DialogTitle, DialogContent, DialogActions, IconButton, Tooltip
 } from '@mui/material';
-import { Payment, CheckCircle, PendingActions, Cancel, Refresh, Edit, Delete, Add } from '@mui/icons-material';
+import { Payment, CheckCircle, PendingActions, Refresh, Edit, Delete, Add } from '@mui/icons-material';
 import { feeAPI, userAPI } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import PageHeader from '../../components/shared/PageHeader';
 import { COLORS } from '../../theme/theme';
+import { anim, shimmerBg } from '../../theme/animations';
 import { toast } from 'react-toastify';
 import dayjs from 'dayjs';
 import StatCard from '../../components/shared/StatCard';
 
-const RAZORPAY_KEY = process.env.REACT_APP_RAZORPAY_KEY_ID;
+
 
 const statusColors = {
   PAID:      { color: COLORS.excellent, bg: COLORS.greenBg,   label: 'Paid ✓' },
@@ -54,6 +55,7 @@ export default function FeePage() {
     if (isAdmin) {
       userAPI.getStudents().then(r => setStudents(r.data.data || [])).catch(() => {});
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const openEdit = (fee) => {
@@ -109,7 +111,7 @@ export default function FeePage() {
       if (!order?.orderId) throw new Error('Invalid order response from server');
 
       const options = {
-        key: process.env.REACT_APP_RAZORPAY_KEY_ID || 'rzp_test_YOUR_KEY_HERE',
+        key: order.keyId,               // ✅ backend returns the correct key — no env var needed
         amount: order.amount,          // in paise (backend returns amount * 100)
         currency: order.currency || 'INR',
         name: 'CampusIQ+',
@@ -293,11 +295,11 @@ export default function FeePage() {
                               </Tooltip>
                             </Box>
                           ) : (
-                            fee.status === 'PENDING' && (
+                            (fee.status === 'PENDING' || fee.status === 'OVERDUE') && (
                               <Button size="small" variant="contained"
-                                sx={{ bgcolor: COLORS.primary, borderRadius: 1.5, fontSize: '0.72rem', py: 0.4 }}
+                                sx={{ bgcolor: fee.status === 'OVERDUE' ? COLORS.critical : COLORS.primary, borderRadius: 1.5, fontSize: '0.72rem', py: 0.4 }}
                                 onClick={() => { setPayForm({ feeType: fee.feeType, amount: fee.amount, feeId: fee.id }); setPayDialog(true); }}>
-                                Pay
+                                {fee.status === 'OVERDUE' ? 'Pay Now!' : 'Pay'}
                               </Button>
                             )
                           )}

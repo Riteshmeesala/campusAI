@@ -46,38 +46,43 @@ public class DataInitializer {
 
             User fac1 = save(User.builder().username("faculty1").name("Prof. Ramesh Kumar")
                 .email("faculty1@campusiq.com").password(pw).role(Role.FACULTY)
-                .phoneNumber("9000000002").department("Computer Science")
+                .phoneNumber("9000000002").department("Computer Science").homeDepartment("Computer Science")
                 .enrollmentNumber("FAC001").active(true).build());
 
             User fac2 = save(User.builder().username("faculty2").name("Dr. Priya Lakshmi")
                 .email("faculty2@campusiq.com").password(pw).role(Role.FACULTY)
-                .phoneNumber("9000000003").department("Electronics")
+                .phoneNumber("9000000003").department("Mathematics").homeDepartment("Mathematics")
                 .enrollmentNumber("FAC002").active(true).build());
 
             User ravi = save(User.builder().username("ravi2268").name("Ravi Kumar")
                 .email("ravi@campusiq.com").password(pw).role(Role.STUDENT)
-                .phoneNumber("9876543210").department("Computer Science")
+                .phoneNumber("9876543210").department("Computer Science").semester(4).section("Section A")
                 .enrollmentNumber("23BQ1A1268").active(true).build());
 
             User priya = save(User.builder().username("priya2269").name("Priya Sharma")
                 .email("priya@campusiq.com").password(pw).role(Role.STUDENT)
-                .phoneNumber("9876543211").department("Computer Science")
+                .phoneNumber("9876543211").department("Computer Science").semester(4).section("Section A")
                 .enrollmentNumber("23BQ1A1269").active(true).build());
 
             User anjali = save(User.builder().username("anjali2270").name("Anjali Reddy")
                 .email("anjali@campusiq.com").password(pw).role(Role.STUDENT)
-                .phoneNumber("9876543212").department("Computer Science")
+                .phoneNumber("9876543212").department("Computer Science").semester(4).section("Section B")
                 .enrollmentNumber("23BQ1A1270").active(true).build());
 
             save(User.builder().username("farhan2271").name("Mohammed Farhan")
                 .email("farhan@campusiq.com").password(pw).role(Role.STUDENT)
-                .phoneNumber("9876543213").department("Computer Science")
-                .enrollmentNumber("23BQ1A1271").active(true).build());
+                .phoneNumber("9876543213").department("Electronics").semester(4).section("Section A")
+                .enrollmentNumber("23BQ1A0401").active(true).build());
 
             save(User.builder().username("sneha2272").name("Sneha Patel")
                 .email("sneha@campusiq.com").password(pw).role(Role.STUDENT)
-                .phoneNumber("9876543214").department("Computer Science")
+                .phoneNumber("9876543214").department("Information Technology").semester(4).section("Section A")
                 .enrollmentNumber("23BQ1A1272").active(true).build());
+
+            save(User.builder().username("vikram2273").name("Vikram Singh")
+                .email("vikram@campusiq.com").password(pw).role(Role.STUDENT)
+                .phoneNumber("9876543215").department("Mechanical Engineering").semester(4).section("Section A")
+                .enrollmentNumber("23BQ1A0301").active(true).build());
 
             // ── COURSES ────────────────────────────────────────────
             Course cs401 = saveCourse("CS401","Data Structures & Algorithms","Core CS",4,"Computer Science",fac1);

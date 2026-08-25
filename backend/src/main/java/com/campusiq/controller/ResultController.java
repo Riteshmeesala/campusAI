@@ -112,8 +112,13 @@ public class ResultController {
 
     /** GPA for a specific student */
     @GetMapping("/student/{id}/gpa")
-    @PreAuthorize("hasAnyRole('FACULTY','ADMIN')")
-    public ResponseEntity<ApiResponse<Map<String, Object>>> studentGpa(@PathVariable Long id) {
+    @PreAuthorize("hasAnyRole('FACULTY','ADMIN','STUDENT')")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> studentGpa(@PathVariable Long id,
+            @AuthenticationPrincipal UserPrincipal me) {
+        // Students may only view their own GPA via this endpoint
+        if (me.getUser().getRole().name().equals("STUDENT") && !me.getUser().getId().equals(id)) {
+            return ResponseEntity.status(403).body(ApiResponse.error("Access denied"));
+        }
         return ResponseEntity.ok(ApiResponse.success(resultService.getStudentGPA(id)));
     }
 

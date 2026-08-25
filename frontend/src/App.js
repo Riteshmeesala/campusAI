@@ -20,6 +20,8 @@ import FacultyDetails     from './pages/faculty/FacultyDetails';
 import StudentsList       from './pages/admin/StudentsList';
 import FacultyList        from './pages/admin/FacultyList';
 import FacultySchedulePage from './pages/faculty/FacultySchedulePage';
+import FacultyCoursesPage  from './pages/faculty/FacultyCoursesPage';
+import FacultyTimetablePage from './pages/faculty/FacultyTimetablePage';
 import GPAPage            from './pages/student/GPAPage';
 import NotFoundPage       from './pages/NotFoundPage';
 import AnnouncementsPage  from './pages/announcements/AnnouncementsPage';
@@ -58,7 +60,8 @@ export default function App() {
               element={<ProtectedRoute roles={['STUDENT','FACULTY','ADMIN']}><AttendancePage /></ProtectedRoute>} />
             <Route path="/student/fees"
               element={<ProtectedRoute roles={['STUDENT','ADMIN']}><FeePage /></ProtectedRoute>} />
-            <Route path="/student/exams"    element={<ExamPage />} />
+            <Route path="/student/exams"
+              element={<ProtectedRoute roles={['STUDENT','FACULTY','ADMIN']}><ExamPage /></ProtectedRoute>} />
             <Route path="/student/results"
               element={<ProtectedRoute roles={['STUDENT','FACULTY','ADMIN']}><ResultPage /></ProtectedRoute>} />
             <Route path="/student/gpa"
@@ -74,6 +77,10 @@ export default function App() {
             {/* ── FACULTY ── */}
             <Route path="/faculty/dashboard"
               element={<ProtectedRoute roles={['FACULTY']}><FacultyDashboard /></ProtectedRoute>} />
+            <Route path="/faculty/courses"
+              element={<ProtectedRoute roles={['FACULTY','ADMIN']}><FacultyCoursesPage /></ProtectedRoute>} />
+            <Route path="/faculty/timetable"
+              element={<ProtectedRoute roles={['FACULTY','ADMIN']}><FacultyTimetablePage /></ProtectedRoute>} />
             <Route path="/faculty/schedule"
               element={<ProtectedRoute roles={['FACULTY','ADMIN']}><FacultySchedulePage /></ProtectedRoute>} />
             <Route path="/faculty/profile"

@@ -3,12 +3,13 @@ import { useParams } from 'react-router-dom';
 import {
   Box, Grid, Card, CardContent, Typography, Avatar, Chip, Divider,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  CircularProgress, Alert
+  CircularProgress
 } from '@mui/material';
 import { Email, Phone, School } from '@mui/icons-material';
 import { useAuth } from '../../context/AuthContext';
-import { userAPI, scheduleAPI, courseAPI } from '../../services/api';
+import { userAPI, scheduleAPI } from '../../services/api';
 import PageHeader from '../../components/shared/PageHeader';
+import ProfilePhotoUploader from '../../components/shared/ProfilePhotoUploader';
 import { COLORS } from '../../theme/theme';
 
 export default function FacultyDetails() {
@@ -51,13 +52,17 @@ export default function FacultyDetails() {
       />
       <Grid container spacing={2.5}>
         <Grid item xs={12} md={4}>
-          <Card>
+          <Card sx={{ border: `1px solid ${COLORS.border}`, borderRadius: 0.5 }}>
             <CardContent sx={{ textAlign: 'center', py: 3 }}>
-              <Avatar sx={{ width: 80, height: 80, bgcolor: COLORS.primary, fontSize: 32, mx: 'auto', mb: 2 }}>
-                {faculty?.name?.[0] || 'F'}
-              </Avatar>
+              <Box sx={{ mb: 2 }}>
+                <ProfilePhotoUploader
+                  targetUser={faculty}
+                  size={90}
+                  onImageUpdated={(newUrl) => setFaculty(prev => ({ ...prev, profileImage: newUrl }))}
+                />
+              </Box>
               <Typography variant="h6" fontWeight={700}>{faculty?.name}</Typography>
-              <Chip label="FACULTY" size="small" sx={{ mt: 0.5, bgcolor: COLORS.primary, color: '#fff' }} />
+              <Chip label="FACULTY" size="small" sx={{ mt: 0.5, bgcolor: COLORS.primary, color: '#fff', borderRadius: 0.5 }} />
               <Divider sx={{ my: 2 }} />
               <Box sx={{ textAlign: 'left' }}>
                 {[

@@ -10,7 +10,6 @@ import {
   Box,
   Button, Card, CardContent,
   Chip,
-  CircularProgress,
   Grid,
   Typography
 } from '@mui/material';
@@ -36,6 +35,7 @@ import StatCard from '../../components/shared/StatCard';
 import { useAuth } from '../../context/AuthContext';
 import { aiAPI, attendanceAPI, feeAPI, gpaAPI, notifAPI, resultAPI } from '../../services/api';
 import { COLORS, getAttColor, getPerfColor } from '../../theme/theme';
+import { anim, stagger, shimmerBg, hoverGlow } from '../../theme/animations';
 
 ChartJS.register(
   CategoryScale, LinearScale, BarElement,
@@ -68,7 +68,6 @@ export default function StudentDashboard() {
     ]).then(([att, res, fee, gpaRes, ntf, ai]) => {
       if (att.status === 'fulfilled') {
         const records = att.value.data.data || [];
-        // Build summary from raw attendance records
         const byCourse = {};
         records.forEach(r => {
           const code = r.course?.courseCode || 'UNK';
@@ -77,7 +76,11 @@ export default function StudentDashboard() {
           byCourse[code].total++;
           if (r.status === 'PRESENT' || r.status === 'LATE') byCourse[code].present++;
         });
-        const subjects = Object.values(byCourse).map(s => ({ ...s, percentage: s.total ? (s.present/s.total)*100 : 0 }));
+        const subjects = Object.values(byCourse).map(s => ({
+          ...s,
+          percentage: s.total ? (s.present/s.total)*100 : 0,
+          classesNeededFor75: Math.max(0, Math.ceil((0.75 * s.total - s.present) / 0.25)),
+        }));
         const totalPresent = subjects.reduce((s,x) => s+x.present, 0);
         const totalClasses = subjects.reduce((s,x) => s+x.total, 0);
         setAttendance({ 
@@ -87,12 +90,10 @@ export default function StudentDashboard() {
       }
       if (res.status === 'fulfilled') setResults(res.value.data.data || []);
       if (fee.status === 'fulfilled') setFees(fee.value.data.data || []);
-      if (ntf.status === 'fulfilled') notifAPI.getAll()
-  .then(res => {
-    const data = res?.data?.content || res?.content || res || [];
-    setNotifs(Array.isArray(data) ? data : []);
-  })
-  .catch(() => setNotifs([]));
+      if (ntf.status === 'fulfilled') {
+        const unreadList = ntf.value.data?.data || [];
+        setNotifs(Array.isArray(unreadList) ? unreadList : []);
+      }
       if (gpaRes.status === 'fulfilled') setGpa(gpaRes.value.data.data);
       if (ai.status  === 'fulfilled') {
         const raw = ai.value.data.data;
@@ -123,14 +124,15 @@ export default function StudentDashboard() {
         const p = parseFloat(r.percentage || 0);
         return `${getPerfColor(p)}cc`;
       }),
-      borderRadius: 8, borderSkipped: false,
+      borderRadius: 10, borderSkipped: false,
     }]
   };
   const barOpts = {
-    responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
     scales: {
-      y: { max: 100, min: 0, grid: { color: '#e2e8f010' }, ticks: { font: { size: 11 } } },
-      x: { grid: { display: false }, ticks: { font: { size: 11 } } }
+      y: { max: 100, min: 0, grid: { color: '#f1f5f908' }, ticks: { font: { size: 11, family: 'Inter' } } },
+      x: { grid: { display: false }, ticks: { font: { size: 11, family: 'Inter' } } }
     }
   };
 
@@ -141,29 +143,36 @@ export default function StudentDashboard() {
     datasets: [{
       label: 'Attendance %',
       data: subj.map(s => s.percentage),
-      backgroundColor: `${COLORS.secondary}25`,
+      backgroundColor: `${COLORS.secondary}18`,
       borderColor: COLORS.secondary, pointBackgroundColor: COLORS.secondary,
       borderWidth: 2, pointRadius: 4,
     }]
   };
   const radarOpts = {
     responsive: true, maintainAspectRatio: false,
-    scales: { r: { min: 0, max: 100, ticks: { stepSize: 25, font: { size: 10 } } } },
+    scales: { r: { min: 0, max: 100, ticks: { stepSize: 25, font: { size: 10, family: 'Inter' } } } },
     plugins: { legend: { display: false } }
   };
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-        <Box sx={{ height: 80, bgcolor: '#fff', borderRadius: 2 }} />
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+        {/* Shimmer welcome bar */}
+        <Box sx={{ height: 80, borderRadius: 4, ...shimmerBg }} />
         <Grid container spacing={2.5}>
           {[1,2,3,4].map(i => (
             <Grid item xs={12} sm={6} md={3} key={i}>
-              <Card sx={{ height: 130 }}>
-                <CardContent><CircularProgress size={24} /></CardContent>
-              </Card>
+              <Box sx={{ height: 140, borderRadius: 4, ...shimmerBg }} />
             </Grid>
           ))}
+        </Grid>
+        <Grid container spacing={2.5}>
+          <Grid item xs={12} md={8}>
+            <Box sx={{ height: 300, borderRadius: 4, ...shimmerBg }} />
+          </Grid>
+          <Grid item xs={12} md={4}>
+            <Box sx={{ height: 300, borderRadius: 4, ...shimmerBg }} />
+          </Grid>
         </Grid>
       </Box>
     );
@@ -171,18 +180,39 @@ export default function StudentDashboard() {
 
   return (
     <Box>
-      <PageHeader
-        title={`Welcome back, ${user?.fullName?.split(' ')[0] || user?.username} 👋`}
-        subtitle="Here's your academic overview for today"
-        breadcrumbs={['Home', 'Dashboard']}
-      />
+      {/* Welcome banner */}
+      <Box sx={{
+        mb: 3, p: 3, borderRadius: 4,
+        background: `linear-gradient(135deg, ${COLORS.primary} 0%, ${COLORS.primaryLight} 60%, ${COLORS.secondaryLight} 100%)`,
+        position: 'relative', overflow: 'hidden',
+        ...anim.fadeInUp(0),
+      }}>
+        <Box sx={{
+          position: 'absolute', top: -30, right: -30, width: 150, height: 150,
+          borderRadius: '50%', background: 'rgba(255,255,255,0.05)',
+        }} />
+        <Box sx={{
+          position: 'absolute', bottom: -20, right: 60, width: 100, height: 100,
+          borderRadius: '50%', background: 'rgba(245,158,11,0.08)',
+        }} />
+        <Typography variant="h5" sx={{
+          color: '#fff', fontWeight: 800, letterSpacing: '-0.02em', position: 'relative',
+        }}>
+          Welcome back, {user?.name?.split(' ')[0] || user?.username} 👋
+        </Typography>
+        <Typography sx={{
+          color: 'rgba(255,255,255,0.6)', fontSize: '0.88rem', mt: 0.5, position: 'relative',
+        }}>
+          Here's your academic overview for today
+        </Typography>
+      </Box>
 
       {/* Critical alerts */}
-      {notifs.filter(n => n.type === 'ATTENDANCE' || n.type === 'AI_ALERT').slice(0, 2).map(n => (
+      {notifs.filter(n => n.type === 'ATTENDANCE' || n.type === 'AI_ALERT').slice(0, 2).map((n, i) => (
         <Alert
           key={n.id}
           severity={n.type === 'AI_ALERT' ? 'error' : 'warning'}
-          sx={{ mb: 1.5, borderRadius: 2, fontSize: '0.875rem' }}
+          sx={{ mb: 1.5, ...anim.fadeInUp(0.1 + i * 0.05) }}
           icon={<Warning fontSize="small" />}
         >
           {n.message}
@@ -194,9 +224,10 @@ export default function StudentDashboard() {
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
             icon={<TrendingUp />}
-            label="CGPA" value={user?.cgpa || '—'}
+            label="CGPA" value={gpa?.cgpa?.toFixed(2) || '—'}
             sub="Current semester"
             color={COLORS.secondary}
+            index={0}
           />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
@@ -206,6 +237,7 @@ export default function StudentDashboard() {
             value={`${attendance?.overallPercentage?.toFixed(1) || 0}%`}
             sub={attendance?.overallPercentage >= 75 ? '✅ Above 75%' : '⚠️ Below 75%'}
             color={getAttColor(attendance?.overallPercentage || 0)}
+            index={1}
           />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
@@ -215,6 +247,7 @@ export default function StudentDashboard() {
             value={`${avgMarks.toFixed(1)}%`}
             sub={aiData?.suggestionCategory || '—'}
             color={getPerfColor(avgMarks)}
+            index={2}
           />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
@@ -224,6 +257,7 @@ export default function StudentDashboard() {
             value={pendingFees.length}
             sub={pendingFees.length > 0 ? 'Action required' : 'All cleared ✅'}
             color={pendingFees.length > 0 ? COLORS.critical : COLORS.excellent}
+            index={3}
           />
         </Grid>
       </Grid>
@@ -234,12 +268,14 @@ export default function StudentDashboard() {
           {/* Charts row */}
           <Grid container spacing={2.5} sx={{ mb: 2.5 }}>
             <Grid item xs={12} sm={7}>
-              <Card sx={{ height: 280 }}>
+              <Card sx={{ height: 300, ...anim.fadeInUp(0.25) }}>
                 <CardContent sx={{ height: '100%', pb: '16px !important' }}>
-                  <Typography variant="h6" fontWeight={700} mb={1.5}>Marks by Subject</Typography>
+                  <Typography variant="h6" fontWeight={700} mb={1.5} sx={{ letterSpacing: '-0.01em' }}>
+                    Marks by Subject
+                  </Typography>
                   {results.length > 0
-                    ? <Box sx={{ height: 210 }}><Bar data={barData} options={barOpts} /></Box>
-                    : <Box sx={{ height: 210, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    ? <Box sx={{ height: 220 }}><Bar data={barData} options={barOpts} /></Box>
+                    : <Box sx={{ height: 220, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         <Typography color="text.secondary" variant="body2">No results yet</Typography>
                       </Box>
                   }
@@ -247,12 +283,14 @@ export default function StudentDashboard() {
               </Card>
             </Grid>
             <Grid item xs={12} sm={5}>
-              <Card sx={{ height: 280 }}>
+              <Card sx={{ height: 300, ...anim.fadeInUp(0.3) }}>
                 <CardContent sx={{ height: '100%', pb: '16px !important' }}>
-                  <Typography variant="h6" fontWeight={700} mb={1.5}>Attendance Radar</Typography>
+                  <Typography variant="h6" fontWeight={700} mb={1.5} sx={{ letterSpacing: '-0.01em' }}>
+                    Attendance Radar
+                  </Typography>
                   {subj.length > 0
-                    ? <Box sx={{ height: 210 }}><Radar data={radarData} options={radarOpts} /></Box>
-                    : <Box sx={{ height: 210, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    ? <Box sx={{ height: 220 }}><Radar data={radarData} options={radarOpts} /></Box>
+                    : <Box sx={{ height: 220, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         <Typography color="text.secondary" variant="body2">No data</Typography>
                       </Box>
                   }
@@ -262,13 +300,15 @@ export default function StudentDashboard() {
           </Grid>
 
           {/* Attendance breakdown */}
-          <Card sx={{ mb: 2.5 }}>
+          <Card sx={{ mb: 2.5, ...anim.fadeInUp(0.35) }}>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-                <Typography variant="h6" fontWeight={700}>Attendance by Subject</Typography>
+                <Typography variant="h6" fontWeight={700} sx={{ letterSpacing: '-0.01em' }}>
+                  Attendance by Subject
+                </Typography>
                 <Button size="small" endIcon={<ArrowForward fontSize="small" />}
                   onClick={() => navigate('/student/attendance')}
-                  sx={{ fontSize: '0.8rem' }}>View all</Button>
+                  sx={{ fontSize: '0.8rem', borderRadius: 2 }}>View all</Button>
               </Box>
               {attendance?.subjectBreakdown?.length > 0
                 ? attendance.subjectBreakdown.map(s => (
@@ -292,14 +332,18 @@ export default function StudentDashboard() {
         <Grid item xs={12} md={4}>
           {/* Performance badge */}
           {aiData && (
-            <Card sx={{ mb: 2.5 }}>
+            <Card sx={{ mb: 2.5, ...anim.fadeInUp(0.2) }}>
               <CardContent>
-                <Typography variant="h6" fontWeight={700} mb={2}>AI Performance</Typography>
+                <Typography variant="h6" fontWeight={700} mb={2} sx={{ letterSpacing: '-0.01em' }}>
+                  AI Performance
+                </Typography>
                 <PerformanceBadge percentage={aiData.averageMarksPercentage || avgMarks} />
                 <Box sx={{
-                  mt: 2, p: 1.5, borderRadius: 2,
+                  mt: 2, p: 1.5, borderRadius: 3,
                   bgcolor: aiData.riskLevel === 'HIGH' ? COLORS.criticalBg
-                         : aiData.riskLevel === 'MEDIUM' ? COLORS.moderateBg : COLORS.greenBg
+                         : aiData.riskLevel === 'MEDIUM' ? COLORS.moderateBg : COLORS.greenBg,
+                  border: `1px solid ${aiData.riskLevel === 'HIGH' ? COLORS.critical
+                         : aiData.riskLevel === 'MEDIUM' ? COLORS.moderate : COLORS.excellent}15`,
                 }}>
                   <Typography variant="caption" fontWeight={700} sx={{
                     color: aiData.riskLevel === 'HIGH' ? COLORS.critical
@@ -314,7 +358,7 @@ export default function StudentDashboard() {
                 <Button
                   fullWidth variant="outlined" endIcon={<ArrowForward fontSize="small" />}
                   onClick={() => navigate('/student/ai-insights')}
-                  sx={{ mt: 2, borderRadius: 2, fontSize: '0.8rem' }}
+                  sx={{ mt: 2, borderRadius: 3, fontSize: '0.8rem' }}
                 >
                   View Full Analysis
                 </Button>
@@ -323,31 +367,42 @@ export default function StudentDashboard() {
           )}
 
           {/* Quick actions */}
-          <Card sx={{ mb: 2.5 }}>
+          <Card sx={{ mb: 2.5, ...anim.fadeInUp(0.3) }}>
             <CardContent>
-              <Typography variant="h6" fontWeight={700} mb={2}>Quick Actions</Typography>
+              <Typography variant="h6" fontWeight={700} mb={2} sx={{ letterSpacing: '-0.01em' }}>
+                Quick Actions
+              </Typography>
               {[
                 { icon: '📊', label: 'View Results', path: '/student/results', color: COLORS.secondary },
                 { icon: '💳', label: 'Pay Fees', path: '/student/fees', color: COLORS.accent, badge: pendingFees.length },
                 { icon: '🗓️', label: 'Exam Schedule', path: '/student/exams', color: COLORS.primary },
                 { icon: '🤖', label: 'AI Study Plan', path: '/student/study-plan', color: COLORS.excellent },
                 { icon: '💬', label: 'CampusMate Chat', path: '/chatbot', color: '#7c3aed' },
-              ].map(a => (
+              ].map((a, i) => (
                 <Box
                   key={a.label}
                   onClick={() => navigate(a.path)}
                   sx={{
                     display: 'flex', alignItems: 'center', gap: 1.5, p: 1.5,
-                    borderRadius: 2, cursor: 'pointer', mb: 0.5,
-                    '&:hover': { bgcolor: `${a.color}0d` }, transition: 'all 0.15s'
+                    borderRadius: 3, cursor: 'pointer', mb: 0.5,
+                    transition: 'all 0.25s cubic-bezier(0.22,1,0.36,1)',
+                    '&:hover': {
+                      bgcolor: `${a.color}08`,
+                      transform: 'translateX(6px)',
+                      '& .action-icon': { transform: 'scale(1.15)' },
+                    },
                   }}
                 >
-                  <Typography fontSize="1.2rem">{a.icon}</Typography>
+                  <Typography className="action-icon" fontSize="1.2rem"
+                    sx={{ transition: 'transform 0.2s ease' }}>{a.icon}</Typography>
                   <Typography variant="body2" fontWeight={600} color={COLORS.textPrimary} flex={1}>{a.label}</Typography>
                   {a.badge > 0 && (
-                    <Chip label={a.badge} size="small" sx={{ bgcolor: COLORS.critical, color: '#fff', height: 20, fontSize: '0.7rem', fontWeight: 700 }} />
+                    <Chip label={a.badge} size="small" sx={{
+                      background: COLORS.gradDanger, color: '#fff',
+                      height: 20, fontSize: '0.7rem', fontWeight: 700,
+                    }} />
                   )}
-                  <ArrowForward sx={{ fontSize: 16, color: COLORS.textMuted }} />
+                  <ArrowForward sx={{ fontSize: 14, color: COLORS.textMuted, transition: 'transform 0.2s' }} />
                 </Box>
               ))}
             </CardContent>
@@ -355,16 +410,20 @@ export default function StudentDashboard() {
 
           {/* Notifications */}
           {notifs.length > 0 && (
-            <Card>
+            <Card sx={{ ...anim.fadeInUp(0.4) }}>
               <CardContent>
-                <Typography variant="h6" fontWeight={700} mb={1.5}>Notifications</Typography>
-                {notifs.slice(0, 4).map(n => (
+                <Typography variant="h6" fontWeight={700} mb={1.5} sx={{ letterSpacing: '-0.01em' }}>
+                  Notifications
+                </Typography>
+                {notifs.slice(0, 4).map((n, i) => (
                   <Box key={n.id} sx={{
-                    p: 1.5, borderRadius: 2, mb: 1,
+                    p: 1.5, borderRadius: 3, mb: 1,
                     bgcolor: n.type === 'ATTENDANCE' ? COLORS.atRiskBg
                            : n.type === 'AI_ALERT'   ? COLORS.criticalBg : COLORS.bgBase,
-                    border: `1px solid ${n.type === 'ATTENDANCE' ? COLORS.atRisk + '30'
-                           : n.type === 'AI_ALERT' ? COLORS.critical + '30' : COLORS.border}`
+                    border: `1px solid ${n.type === 'ATTENDANCE' ? COLORS.atRisk + '20'
+                           : n.type === 'AI_ALERT' ? COLORS.critical + '20' : COLORS.border}`,
+                    transition: 'transform 0.2s ease',
+                    '&:hover': { transform: 'translateX(4px)' },
                   }}>
                     <Typography variant="caption" fontWeight={700} color={COLORS.textPrimary}>{n.title}</Typography>
                     <Typography variant="caption" display="block" color="text.secondary" sx={{ fontSize: '0.7rem', mt: 0.3 }}>

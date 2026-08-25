@@ -49,6 +49,9 @@ public class Fee {
     @Column(name = "razorpay_payment_id", length = 200)
     private String razorpayPaymentId;
 
+    @Column(name = "razorpay_signature", length = 500)
+    private String razorpaySignature;
+
     @Column(length = 500)
     private String description;
 

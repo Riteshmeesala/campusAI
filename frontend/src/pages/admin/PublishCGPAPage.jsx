@@ -8,7 +8,6 @@ import {
 } from '@mui/material';
 import { Upload, CheckCircle, Info, RestartAlt } from '@mui/icons-material';
 import { userAPI, cgpaUploadAPI } from '../../services/api';
-import { useAuth } from '../../context/AuthContext';
 import PageHeader from '../../components/shared/PageHeader';
 import { COLORS } from '../../theme/theme';
 import { toast } from 'react-toastify';
@@ -25,7 +24,6 @@ import { toast } from 'react-toastify';
  *  • Select 1-8   → record is stored as SGPA for that semester
  */
 export default function PublishCGPAPage() {
-  const { user } = useAuth();
 
   const [students,  setStudents]  = useState([]);
   const [cgpaMap,   setCgpaMap]   = useState({});       // { studentId: cgpaString }

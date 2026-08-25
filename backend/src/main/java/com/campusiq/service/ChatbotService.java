@@ -35,8 +35,8 @@ public class ChatbotService {
     private final FeeRepository        feeRepository;
     private final UserRepository       userRepository;
 
-    // ── Ollama local AI (replaces all OpenAI fields) ────────────────────────
-    private final OllamaService ollamaService;
+    // ── Grok AI (xAI cloud — replaces Ollama) ────────────────────────────────
+    private final GrokService grokService;
 
     // ─────────────────────────────────────────────────────────────────────
     //  ENTRY POINT  (called by ChatbotController)
@@ -52,17 +52,17 @@ public class ChatbotService {
         // Build live DB context (safe — never throws outward)
         String dbContext = buildDbContext(userId);
 
-        // ── Try Ollama local AI ─────────────────────────────────────────────────
+        // ── Try Grok AI ─────────────────────────────────────────────────────────
         try {
-            String prompt = buildOllamaPrompt(userMessage, userName, dbContext);
-            String reply  = ollamaService.askAI(prompt);
+            String prompt = buildGrokPrompt(userMessage, userName, dbContext);
+            String reply  = grokService.askAI(prompt);
             if (reply != null && !reply.isBlank()) {
-                log.info("[Ollama] Response OK for user={}", userName);
+                log.info("[Grok] Response OK for user={}", userName);
                 return reply;
             }
-            log.info("[Ollama] Unavailable or empty — using built-in engine for user={}", userName);
+            log.info("[Grok] Unavailable or empty — using built-in engine for user={}", userName);
         } catch (Exception e) {
-            log.warn("[Ollama] Unexpected error for user={}: {}", userName, e.getMessage());
+            log.warn("[Grok] Unexpected error for user={}: {}", userName, e.getMessage());
         }
 
         // Built-in engine — ALWAYS returns a real answer, never "could not retrieve"
@@ -75,11 +75,11 @@ public class ChatbotService {
 
 
     // ─────────────────────────────────────────────────────────────────────
-    //  OLLAMA PROMPT BUILDER
-    //  Constructs the single prompt string sent to Ollama /api/generate.
+    //  GROK PROMPT BUILDER
+    //  Constructs the prompt string sent to Grok /v1/chat/completions.
     //  Embeds live DB context + user info + rules in one text block.
     // ─────────────────────────────────────────────────────────────────────
-    private String buildOllamaPrompt(String userMessage, String userName, String dbContext) {
+    private String buildGrokPrompt(String userMessage, String userName, String dbContext) {
         String today = LocalDate.now().format(DateTimeFormatter.ofPattern("dd MMMM yyyy"));
         return  "You are CampusMate AI, the intelligent assistant for the CampusIQ+ campus platform.\n"
               + "You assist students, faculty, and administrators.\n\n"
@@ -105,7 +105,7 @@ public class ChatbotService {
     }
 
     // ─────────────────────────────────────────────────────────────────────
-    //  LIVE DB CONTEXT  (injected into Ollama prompt)
+    //  LIVE DB CONTEXT  (injected into Grok prompt)
     // ─────────────────────────────────────────────────────────────────────
     private String buildDbContext(Long userId) {
         if (userId == null) return "No user ID — answer general questions only.";
@@ -193,7 +193,7 @@ public class ChatbotService {
     }
 
     // ─────────────────────────────────────────────────────────────────────
-    //  BUILT-IN ANSWER ENGINE  — runs when Ollama is unavailable or returns null
+    //  BUILT-IN ANSWER ENGINE  — runs when Grok is unavailable or returns null
     //  ALWAYS returns a real, useful answer. Never "could not retrieve".
     // ─────────────────────────────────────────────────────────────────────
     private String builtInAnswer(String msg, Long userId, String userName) {
@@ -717,9 +717,9 @@ public class ChatbotService {
     // ─────────────────────────────────────────────────────────────────────
     //  UTILITIES
     // ─────────────────────────────────────────────────────────────────────
-    /** @deprecated replaced by Ollama — kept only if caller needs the flag */
+    /** @deprecated replaced by Grok — kept only if caller needs the flag */
     private boolean isAiAvailable() {
-        return ollamaService.isAvailable();
+        return grokService.isAvailable();
     }
 
     private boolean has(String msg, String... keywords) {

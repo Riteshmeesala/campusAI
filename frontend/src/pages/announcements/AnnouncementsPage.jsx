@@ -4,18 +4,12 @@ import {
   Grid, Alert, CircularProgress, Chip, Divider
 } from '@mui/material';
 import { Send } from '@mui/icons-material';
-import api from '../../services/api';
+import { announcementAPI } from '../../services/api';
 import PageHeader from '../../components/shared/PageHeader';
 import { COLORS } from '../../theme/theme';
+import { anim } from '../../theme/animations';
 import { toast } from 'react-toastify';
 
-// Inline API — avoids "announcementAPI not found" export error
-const announcementAPI = {
-  sendToAll:        (data) => api.post('/announcements/send', data),
-  sendHoliday:      (data) => api.post('/announcements/send/holiday', data),
-  sendExamReminder: (data) => api.post('/announcements/send/exam', data),
-  sendEvent:        (data) => api.post('/announcements/send/event', data),
-};
 
 const TYPES = [
   { value: 'GENERAL', label: '📢 General' },

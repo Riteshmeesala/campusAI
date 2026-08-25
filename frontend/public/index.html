@@ -7,7 +7,31 @@
     <meta name="description" content="CampusIQ+ - AI-Powered Smart Campus Platform" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,300;0,400;0,500;0,700;0,900;1,300;1,400;1,500;1,700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <!-- Suppress external browser extension unhandled rejections (e.g. MetaMask inpage.js) -->
+    <script>
+      (function() {
+        var isExtensionError = function(err) {
+          if (!err) return false;
+          var str = (err.message || '') + ' ' + (err.stack || '') + ' ' + (err.reason || '') + ' ' + String(err);
+          return str.includes('MetaMask') || str.includes('nkbihfbeogaeaoehlefnkodbefgpgknn') ||
+                 str.includes('chrome-extension://') || str.includes('moz-extension://') ||
+                 str.includes('Failed to connect to MetaMask');
+        };
+        window.addEventListener('error', function(e) {
+          if (isExtensionError(e.error) || (e.filename && isExtensionError(e.filename))) {
+            e.stopImmediatePropagation();
+            e.preventDefault();
+          }
+        }, true);
+        window.addEventListener('unhandledrejection', function(e) {
+          if (isExtensionError(e.reason)) {
+            e.stopImmediatePropagation();
+            e.preventDefault();
+          }
+        }, true);
+      })();
+    </script>
     <!-- ✅ Razorpay SDK - loaded ONCE in head (removed duplicate in body) -->
     <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
     <title>CampusIQ+ | Smart Campus Platform</title>

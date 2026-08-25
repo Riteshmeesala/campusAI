@@ -98,9 +98,18 @@ export const AuthProvider = ({ children }) => {
     setPendingEmail(null);
   }, []);
 
+  // ── Update current user profile in session ────────────────────────────────
+  const updateUser = useCallback((patch) => {
+    setUser(prev => {
+      const updated = { ...prev, ...patch };
+      localStorage.setItem(USER_KEY, JSON.stringify(updated));
+      return updated;
+    });
+  }, []);
+
   const value = {
     user, token, loading, pendingEmail, setPendingEmail,
-    login, logout, verifyOtp,
+    login, logout, verifyOtp, updateUser,
     isAuthenticated: !!user,
     isAdmin:   user?.role === 'ADMIN',
     isFaculty: user?.role === 'FACULTY',

@@ -98,10 +98,13 @@ export const examAPI = {
 // GET /results/my
 // GET /results/student/{id}
 export const resultAPI = {
-  publishResults:    (data)      => api.post('/results/publish', data),
+  publishResults:    (data)      => api.post('/results/publish', data),       // legacy — kept for compatibility
+  publishMid:        (data)      => api.post('/results/publish/mid', data),   // Faculty+Admin
+  publishSem:        (data)      => api.post('/results/publish/sem', data),   // Admin only
   getMyResults:      ()          => api.get('/results/my'),
   getStudentResults: (studentId) => api.get(`/results/student/${studentId}`),
   getExamResults:    (examId)    => api.get(`/results/exam/${examId}`),
+  getAllResults:      ()         => api.get('/results/all'),
 };
 
 // GET /analytics/performance/my
@@ -140,9 +143,19 @@ export const courseAPI = {
   getMyCourses: ()        => api.get('/courses/my'),           // faculty's own courses
   getById:      (id)      => api.get(`/courses/${id}`),
   getByFaculty: (fid)     => api.get(`/courses/faculty/${fid}`),
-  create:       (data)    => api.post('/courses', data),       // admin only
-  update:       (id, d)   => api.put(`/courses/${id}`, d),    // admin only
-  delete:       (id)      => api.delete(`/courses/${id}`),    // admin only
+  create:       (data)    => api.post('/courses', data),       // faculty + admin
+  update:       (id, d)   => api.put(`/courses/${id}`, d),     // faculty + admin
+  delete:       (id)      => api.delete(`/courses/${id}`),     // faculty + admin
+};
+
+// GET/POST/PUT/DELETE /timetable
+export const timetableAPI = {
+  getMy:        ()          => api.get('/timetable/my'),
+  getByFaculty: (facultyId) => api.get(`/timetable/faculty/${facultyId}`),
+  getByCourse:  (courseId)  => api.get(`/timetable/course/${courseId}`),
+  create:       (data)      => api.post('/timetable', data),
+  update:       (id, data)  => api.put(`/timetable/${id}`, data),
+  delete:       (id)        => api.delete(`/timetable/${id}`),
 };
 
 // ── Aliases for backward compatibility with page components ──────────────
@@ -158,18 +171,19 @@ export const notifAPI = notificationAPI;
 
 // GET /users/students, /users/faculty, /users/{id}, /users/stats
 export const userAPI = {
-  getStudents:   ()          => api.get('/users/students'),
-  getFaculty:    ()          => api.get('/users/faculty')
-  getById:       (id)        => api.get(`/users/${id}`),
-  getMyProfile:  ()          => api.get('/users/me'),
-  getMyFull:     ()          => api.get('/users/me/full'),
-  getStats:      ()          => api.get('/users/stats'),
+  getStudents:        (params)        => api.get('/users/students', { params }),
+  getFaculty:         ()              => api.get('/users/faculty'),
+  getById:            (id)            => api.get(`/users/${id}`),
+  getMyProfile:       ()              => api.get('/users/me'),
+  getMyFull:          ()              => api.get('/users/me/full'),
+  getStats:           ()              => api.get('/users/stats'),
+  updateProfileImage: (profileImage)  => api.put('/users/me/profile-image', { profileImage }),
   // ── ADMIN CREATE ──
-  createStudent: (data)      => api.post('/users/students', data),
-  createFaculty: (data)      => api.post('/users/faculty', data),
+  createStudent:      (data)          => api.post('/users/students', data),
+  createFaculty:      (data)          => api.post('/users/faculty', data),
   // ── ADMIN UPDATE/DELETE ──
-  updateUser:    (id, data)  => api.put(`/users/${id}`, data),
-  deleteUser:    (id)        => api.delete(`/users/${id}`),
+  updateUser:         (id, data)      => api.put(`/users/${id}`, data),
+  deleteUser:         (id)            => api.delete(`/users/${id}`),
 };
 
 // GET /schedule/my, /schedule/course/{id}, /schedule/faculty/{id}
@@ -196,6 +210,14 @@ export const cgpaUploadAPI = {
   publishCgpa:    (data) => api.post('/cgpa/publish', data),
   getStudentCgpa: (id)   => api.get(`/cgpa/student/${id}`),
   getAllCgpa:      ()     => api.get('/cgpa/all'),
+};
+
+// POST /announcements/send*
+export const announcementAPI = {
+  sendToAll:        (data) => api.post('/announcements/send', data),
+  sendHoliday:      (data) => api.post('/announcements/send/holiday', data),
+  sendExamReminder: (data) => api.post('/announcements/send/exam', data),
+  sendEvent:        (data) => api.post('/announcements/send/event', data),
 };
 
 export default api;

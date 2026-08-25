@@ -14,6 +14,7 @@ import { examAPI, courseAPI } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import PageHeader from '../../components/shared/PageHeader';
 import { COLORS } from '../../theme/theme';
+import { anim, shimmerBg } from '../../theme/animations';
 import { toast } from 'react-toastify';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
@@ -366,7 +367,7 @@ export default function ExamPage() {
                   const col  = tc(e.examType);
                   const past = dayjs(e.scheduledDate).isBefore(dayjs());
                   return (
-                    <TableRow key={e.id} hover>
+                    <TableRow key={e.id} hover sx={{ opacity: past ? 0.75 : 1 }}>
                       <TableCell>
                         <Typography variant="body2" fontWeight={600}>
                           {e.course?.courseName || '—'}

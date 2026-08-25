@@ -32,9 +32,9 @@ import java.util.stream.Collectors;
  * │   └── General Question ◄───────┘                                        │
  * │                    │                                                    │
  * │                    ▼                                                    │
- * │              AI Service (Ollama LOCAL — OllamaService.askAI)            │
+ * │              AI Service (Groq Cloud — GrokService.askAI)               │
  * │              System Prompt = exact template below                       │
- * │              [fallback → ResponseBuilder if Ollama unavailable]         │
+ * │              [fallback → ResponseBuilder if Groq unavailable]          │
  * │                    │                                                    │
  * │                    ▼                                                    │
  * │              Response Builder                                           │
@@ -77,8 +77,8 @@ public class AIChatbotService {
     private final CourseRepository           courseRepo;
     private final FacultyScheduleRepository  schedRepo;
 
-    // ── Ollama local AI service (replaces all OpenAI fields) ─────────────────
-    private final OllamaService ollamaService;
+    // ── Grok AI service (xAI cloud — replaces Ollama) ─────────────────────────
+    private final GrokService grokService;
 
     // ═════════════════════════════════════════════════════════════════════════
     //  ENTRY POINT  (called by ChatbotController)
@@ -113,32 +113,34 @@ public class AIChatbotService {
             }
         }
 
-        // ── STEP 3: Built-in engine FIRST (always works, no external deps) ────
-        String response;
+        // ── STEP 3: Try Groq AI FIRST (primary engine for ALL queries) ────────
+        String response = null;
+        boolean grokUsed = false;
         try {
-            response = ResponseBuilder.build(
-                    user, message, dbContext,
-                    attRepo, resultRepo, feeRepo, examRepo, courseRepo, schedRepo, userRepo);
-        } catch (Exception e) {
-            log.error("ResponseBuilder error: {}", e.getMessage(), e);
-            response = ResponseBuilder.fallback(user);
-        }
-
-        // ── STEP 4: Try Ollama to enhance the answer (optional, non-blocking) ─
-        boolean ollamaUsed = false;
-        try {
-            if (ollamaService != null && ollamaService.isAvailableFast()) {
+            if (grokService != null && grokService.isAvailableFast()) {
                 String prompt = buildSystemPrompt(user, message, dbContext);
-                String ollamaReply = ollamaService.askAI(prompt);
-                if (ollamaReply != null && !ollamaReply.isBlank()) {
-                    response = ollamaReply;
-                    ollamaUsed = true;
-                    log.info("[Ollama] Enhanced response for user={}", user.getUsername());
+                String grokReply = grokService.askAI(prompt);
+                if (grokReply != null && !grokReply.isBlank()) {
+                    response = grokReply;
+                    grokUsed = true;
+                    log.info("[Grok] ✅ Primary AI response for user={}", user.getUsername());
                 }
             }
         } catch (Exception e) {
-            log.warn("[Ollama] Skipped — {}", e.getMessage());
-            // keep the built-in response
+            log.warn("[Grok] Error — falling back to built-in: {}", e.getMessage());
+        }
+
+        // ── STEP 4: Fallback to built-in engine ONLY if Groq unavailable ──────
+        if (response == null) {
+            log.info("[Grok] Unavailable — using built-in engine for user={}", user.getUsername());
+            try {
+                response = ResponseBuilder.build(
+                        user, message, dbContext,
+                        attRepo, resultRepo, feeRepo, examRepo, courseRepo, schedRepo, userRepo);
+            } catch (Exception e) {
+                log.error("ResponseBuilder error: {}", e.getMessage(), e);
+                response = ResponseBuilder.fallback(user);
+            }
         }
 
         // ── STEP 5: Wrap and return ───────────────────────────────────────────
@@ -148,14 +150,14 @@ public class AIChatbotService {
         out.put("timestamp",   LocalDateTime.now().toString());
         out.put("user",        user.getName());
         out.put("role",        user.getRole().name());
-        out.put("aiPowered",   ollamaUsed);
+        out.put("aiPowered",   grokUsed);
         return out;
     }
 
     /** Backward-compat overload used nowhere else — delegates cleanly */
     
     // ═════════════════════════════════════════════════════════════════════════
-    //  SYSTEM PROMPT — injected into Ollama /api/generate as the full prompt
+    //  SYSTEM PROMPT — sent to Grok AI via /v1/chat/completions
     // ═════════════════════════════════════════════════════════════════════════
 
     private String buildSystemPrompt(User user, String userMessage, String dbContext) {

@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Grid, Box, Card, CardContent, Typography, Button, Chip,
-  LinearProgress, CircularProgress, Divider, Alert
+  Grid, Box, Card, CardContent, Typography, Chip,
+  CircularProgress, Divider, Alert
 } from '@mui/material';
-import { AutoGraph, CheckCircle, Lightbulb, Schedule } from '@mui/icons-material';
+import { CheckCircle, Lightbulb, Schedule } from '@mui/icons-material';
 import { useAuth } from '../../context/AuthContext';
 import { aiAPI } from '../../services/api';
 import PageHeader from '../../components/shared/PageHeader';
 import PerformanceBadge from '../../components/shared/PerformanceBadge';
-import { COLORS, getPerfColor, getPerfBg, getAttColor } from '../../theme/theme';
+import { COLORS } from '../../theme/theme';
 
 const STUDY_HOURS = { HIGH: 6, MEDIUM: 4, LOW: 2 };
 
@@ -52,7 +52,6 @@ export default function StudyPlanPage() {
 
   const highPriority   = data.subjectPerformances?.filter(s => s.priority === 'HIGH')   || [];
   const mediumPriority = data.subjectPerformances?.filter(s => s.priority === 'MEDIUM') || [];
-  const lowPriority    = data.subjectPerformances?.filter(s => s.priority === 'LOW')    || [];
 
   const totalHours = STUDY_HOURS[data.riskLevel] || 4;
 

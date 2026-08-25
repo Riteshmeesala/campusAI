@@ -110,7 +110,7 @@ public class FeeController {
         boolean valid = paymentService.verifyPayment(orderId, paymentId, signature);
 
         if (valid) {
-            feeService.updateFeeStatus(feeId, "PAID"); // mark fee as PAID in DB
+            feeService.markAsPaid(feeId, orderId, paymentId, signature);
             return ResponseEntity.ok(ApiResponse.success("PAYMENT_VERIFIED", "Payment successful"));
         } else {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)

@@ -8,6 +8,7 @@ import { gpaAPI, resultAPI } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import PageHeader from '../../components/shared/PageHeader';
 import { COLORS } from '../../theme/theme';
+import { anim, shimmerBg } from '../../theme/animations';
 
 const gradeColor = g => {
   if (g === 'O' || g === 'A+') return COLORS.excellent;

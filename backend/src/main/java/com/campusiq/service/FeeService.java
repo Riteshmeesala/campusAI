@@ -78,6 +78,22 @@ public class FeeService {
         return feeRepository.save(fee);
     }
 
+    /**
+     * Marks fee as PAID and stores all Razorpay payment details.
+     * Call this after successful signature verification.
+     */
+    @Transactional
+    public Fee markAsPaid(Long id, String orderId, String paymentId, String signature) {
+        Fee fee = feeRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Fee", "id", id));
+        fee.setStatus(Fee.FeeStatus.PAID);
+        fee.setPaidDate(LocalDate.now());
+        fee.setRazorpayOrderId(orderId);
+        fee.setRazorpayPaymentId(paymentId);
+        fee.setRazorpaySignature(signature);
+        return feeRepository.save(fee);
+    }
+
     @Transactional
     public void deleteFee(Long id) {
         if (!feeRepository.existsById(id))

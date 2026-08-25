@@ -23,12 +23,31 @@ public class UserController {
 
     @GetMapping("/students")
     @PreAuthorize("hasAnyRole('ADMIN','FACULTY')")
-    public ResponseEntity<ApiResponse<List<User>>> getStudents() {
-        return ResponseEntity.ok(ApiResponse.success(userRepository.findByRole(Role.STUDENT)));
+    public ResponseEntity<ApiResponse<List<User>>> getStudents(
+            @RequestParam(required = false) String department,
+            @RequestParam(required = false) Integer semester,
+            @RequestParam(required = false) String section) {
+        List<User> students = userRepository.findByRole(Role.STUDENT);
+        if (department != null && !department.isBlank() && !department.equalsIgnoreCase("ALL")) {
+            students = students.stream()
+                    .filter(s -> s.getDepartment() != null && s.getDepartment().equalsIgnoreCase(department.trim()))
+                    .toList();
+        }
+        if (semester != null && semester > 0) {
+            students = students.stream()
+                    .filter(s -> s.getSemester() != null && s.getSemester().equals(semester))
+                    .toList();
+        }
+        if (section != null && !section.isBlank() && !section.equalsIgnoreCase("ALL")) {
+            students = students.stream()
+                    .filter(s -> s.getSection() != null && s.getSection().equalsIgnoreCase(section.trim()))
+                    .toList();
+        }
+        return ResponseEntity.ok(ApiResponse.success(students));
     }
 
     @GetMapping("/faculty")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','FACULTY')")
     public ResponseEntity<ApiResponse<List<User>>> getFaculty() {
         return ResponseEntity.ok(ApiResponse.success(userRepository.findByRole(Role.FACULTY)));
     }
@@ -46,6 +65,9 @@ public class UserController {
         if (userRepository.existsByEmail(email))
             return ResponseEntity.status(409).body(ApiResponse.error("Email already in use"));
 
+        Integer sem = body.get("semester") != null ? Integer.valueOf(body.get("semester").toString()) : 4;
+        String sec  = body.getOrDefault("section", "Section A").toString();
+
         User user = User.builder()
             .username(username)
             .name(body.getOrDefault("name", username).toString())
@@ -55,6 +77,8 @@ public class UserController {
             .phoneNumber(body.getOrDefault("phoneNumber", "").toString())
             .department(body.getOrDefault("department", "Computer Science").toString())
             .enrollmentNumber(body.getOrDefault("enrollmentNumber", "").toString())
+            .semester(sem)
+            .section(sec)
             .active(true).twoFactorEnabled(false).build();
         return ResponseEntity.status(201).body(ApiResponse.success(userRepository.save(user), "Student created"));
     }
@@ -115,6 +139,17 @@ public class UserController {
         return ResponseEntity.ok(ApiResponse.success(profile));
     }
 
+    @PutMapping("/me/profile-image")
+    public ResponseEntity<ApiResponse<User>> updateMyProfileImage(
+            @AuthenticationPrincipal UserPrincipal me,
+            @RequestBody Map<String, String> body) {
+        User user = userRepository.findById(me.getUser().getId())
+            .orElseThrow(() -> new ResourceNotFoundException("User", "id", me.getUser().getId()));
+        user.setProfileImage(body.get("profileImage"));
+        User saved = userRepository.save(user);
+        return ResponseEntity.ok(ApiResponse.success(saved, "Profile image updated"));
+    }
+
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<User>> updateUser(@PathVariable Long id,
@@ -125,7 +160,10 @@ public class UserController {
         if (body.containsKey("email"))            user.setEmail(body.get("email").toString());
         if (body.containsKey("phoneNumber"))      user.setPhoneNumber(body.get("phoneNumber").toString());
         if (body.containsKey("department"))       user.setDepartment(body.get("department").toString());
+        if (body.containsKey("section"))          user.setSection(body.get("section") != null ? body.get("section").toString() : null);
+        if (body.containsKey("semester"))         user.setSemester(body.get("semester") != null && !body.get("semester").toString().isBlank() ? Integer.valueOf(body.get("semester").toString()) : null);
         if (body.containsKey("enrollmentNumber")) user.setEnrollmentNumber(body.get("enrollmentNumber").toString());
+        if (body.containsKey("profileImage"))     user.setProfileImage(body.get("profileImage") != null ? body.get("profileImage").toString() : null);
         if (body.containsKey("active"))           user.setActive(Boolean.parseBoolean(body.get("active").toString()));
         if (body.containsKey("password") && !body.get("password").toString().isBlank())
             user.setPassword(passwordEncoder.encode(body.get("password").toString()));

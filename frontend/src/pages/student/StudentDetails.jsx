@@ -17,6 +17,7 @@ import {
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import PageHeader from '../../components/shared/PageHeader';
+import ProfilePhotoUploader from '../../components/shared/ProfilePhotoUploader';
 import { useAuth } from '../../context/AuthContext';
 import { analyticsAPI, attendanceAPI, gpaAPI, resultAPI, userAPI } from '../../services/api';
 import { COLORS } from '../../theme/theme';
@@ -31,18 +32,19 @@ export default function StudentDetails() {
   const [attendance, setAttendance] = useState([]);
   const [results,    setResults]    = useState([]);
   const [gpa,        setGpa]        = useState(null);
-  const [perf,       setPerf]       = useState(null);
   const [loading,    setLoading]    = useState(true);
-  const [error,      setError]      = useState('');
+  const [error]      = useState('');
 
   useEffect(() => {
     if (!studentId) return;
+    const isOwnProfile = String(studentId) === String(user?.id);
     Promise.allSettled([
       userAPI.getById(studentId),
-      studentId == user?.id ? attendanceAPI.getMyAttendance() : attendanceAPI.getStudentAttendance(studentId),
-      studentId == user?.id ? resultAPI.getMyResults() : resultAPI.getStudentResults(studentId),
-      gpaAPI.getStudentGpa(studentId),
-      studentId == user?.id
+      isOwnProfile ? attendanceAPI.getMyAttendance() : attendanceAPI.getStudentAttendance(studentId),
+      isOwnProfile ? resultAPI.getMyResults() : resultAPI.getStudentResults(studentId),
+      // Use /results/my/gpa for own profile (open to STUDENT), /results/student/{id}/gpa requires FACULTY/ADMIN
+      isOwnProfile ? gpaAPI.getMyGpa() : gpaAPI.getStudentGpa(studentId),
+      isOwnProfile
         ? analyticsAPI.getMyPerformance()
         : analyticsAPI.getStudentPerformance(studentId),
     ]).then(([u, att, res, gpaRes, perfRes]) => {
@@ -50,10 +52,11 @@ export default function StudentDetails() {
       if (att.status === 'fulfilled')  setAttendance(att.value.data.data || []);
       if (res.status === 'fulfilled')  setResults(res.value.data.data || []);
       if (gpaRes.status === 'fulfilled') setGpa(gpaRes.value.data.data);
-      if (perfRes.status === 'fulfilled') setPerf(perfRes.value.data.data);
+      if (perfRes.status === 'fulfilled') { /* performance data available if needed */ }
       setLoading(false);
     });
-  }, [studentId]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [studentId, user?.id]);
 
   if (loading) return <Box sx={{ display:'flex', justifyContent:'center', mt:8 }}><CircularProgress /></Box>;
   if (error) return <Alert severity="error">{error}</Alert>;
@@ -89,11 +92,15 @@ export default function StudentDetails() {
       <Grid container spacing={2.5}>
         {/* Profile Card */}
         <Grid item xs={12} md={4}>
-          <Card>
+          <Card sx={{ border: `1px solid ${COLORS.border}`, borderRadius: 0.5 }}>
             <CardContent sx={{ textAlign: 'center', py: 3 }}>
-              <Avatar sx={{ width: 80, height: 80, bgcolor: COLORS.secondary, fontSize: 32, mx: 'auto', mb: 2 }}>
-                {student?.name?.[0] || 'S'}
-              </Avatar>
+              <Box sx={{ mb: 2 }}>
+                <ProfilePhotoUploader
+                  targetUser={student}
+                  size={90}
+                  onImageUpdated={(newUrl) => setStudent(prev => ({ ...prev, profileImage: newUrl }))}
+                />
+              </Box>
               <Typography variant="h6" fontWeight={700}>{student?.name}</Typography>
               <Chip label={student?.role} size="small" sx={{ mt: 0.5, bgcolor: COLORS.secondary, color: '#fff' }} />
               {/* Live Performance Summary */}
