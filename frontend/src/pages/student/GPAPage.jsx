@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Box, Grid, Card, CardContent, Typography, Chip, CircularProgress,
-  Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Alert
+  Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Alert,
+  Button
 } from '@mui/material';
-import { TrendingUp, School } from '@mui/icons-material';
+import { TrendingUp, School, Assessment } from '@mui/icons-material';
 import { gpaAPI, resultAPI } from '../../services/api';
+import { getSharedStudentCgpa, subscribeToDataSync, DATA_SYNC_EVENTS } from '../../services/dataSync';
 import { useAuth } from '../../context/AuthContext';
 import PageHeader from '../../components/shared/PageHeader';
 import { COLORS } from '../../theme/theme';
@@ -19,18 +22,42 @@ const gradeColor = g => {
 
 export default function GPAPage() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [gpa,     setGpa]     = useState(null);
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  const loadGpaData = () => {
     if (!user?.id) return;
+    const sharedCgpa = getSharedStudentCgpa(user.id);
     Promise.allSettled([gpaAPI.getMyGpa(), resultAPI.getMyResults()])
       .then(([g, r]) => {
-        if (g.status === 'fulfilled') setGpa(g.value.data.data);
+        let liveGpa = g.status === 'fulfilled' ? g.value.data.data : null;
+        if (sharedCgpa) {
+          liveGpa = {
+            ...liveGpa,
+            cgpa: sharedCgpa.cgpa,
+            sgpa: sharedCgpa.sgpa || liveGpa?.sgpa || sharedCgpa.cgpa,
+          };
+        }
+        if (liveGpa) setGpa(liveGpa);
         if (r.status === 'fulfilled') setResults(r.value.data.data || []);
         setLoading(false);
       });
+  };
+
+  useEffect(() => {
+    loadGpaData();
+    window.addEventListener('focus', loadGpaData);
+    const unsubscribe = subscribeToDataSync((event) => {
+      if (event.type === DATA_SYNC_EVENTS.RESULT_PUBLISHED) {
+        loadGpaData();
+      }
+    });
+    return () => {
+      window.removeEventListener('focus', loadGpaData);
+      unsubscribe();
+    };
   }, [user]);
 
   if (loading) return <Box sx={{ display:'flex', justifyContent:'center', mt:8 }}><CircularProgress /></Box>;
@@ -56,7 +83,27 @@ export default function GPAPage() {
 
   return (
     <Box>
-      <PageHeader title="GPA Calculator" subtitle="CGPA & SGPA based on your exam results" breadcrumbs={['Home','GPA']} />
+      <PageHeader
+        title="GPA Calculator"
+        subtitle="CGPA & SGPA based on your exam results"
+        breadcrumbs={['Home','GPA']}
+        action={
+          <Button
+            variant="contained"
+            startIcon={<Assessment />}
+            onClick={() => navigate('/student/semester-records')}
+            sx={{
+              background: COLORS.gradBlue,
+              borderRadius: 3,
+              px: 2.5,
+              py: 1,
+              fontWeight: 700,
+            }}
+          >
+            View Semester Records (1-1 to 4-2)
+          </Button>
+        }
+      />
       <Grid container spacing={2.5}>
         {/* CGPA/SGPA cards */}
         <Grid item xs={12} sm={6} md={4}>

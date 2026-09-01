@@ -1,15 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-
-const C = {
-  primary: '#0f2345', primaryDark: '#080f1e', primaryLight: '#1a3c6e',
-  secondary: '#2563eb', secondaryLight: '#3b82f6',
-  accent: '#f59e0b', accentLight: '#fbbf24',
-  text: '#0f172a', textSub: '#475569', textMuted: '#94a3b8',
-  border: '#e2e8f0', surface: 'rgba(255,255,255,0.85)',
-  success: '#059669', danger: '#dc2626',
-};
+import {
+  LockOutlined, PersonOutline, School, AdminPanelSettings,
+  SupervisorAccount, AutoAwesome, AccountBalance, Close,
+  Visibility, VisibilityOff
+} from '@mui/icons-material';
 
 const DASH = {
   ADMIN: '/admin/dashboard',
@@ -17,56 +13,70 @@ const DASH = {
   STUDENT: '/student/dashboard',
 };
 
-const LoginPage = () => {
+const STAKEHOLDERS = [
+  { role: 'STUDENT', label: 'Student', icon: <School sx={{ fontSize: 18 }} />, placeholder: 'Enter Student Roll No / Email (e.g. 24CS001)' },
+  { role: 'FACULTY', label: 'Faculty', icon: <SupervisorAccount sx={{ fontSize: 18 }} />, placeholder: 'Enter Faculty ID / Email (e.g. faculty_raj)' },
+  { role: 'ADMIN', label: 'Admin', icon: <AdminPanelSettings sx={{ fontSize: 18 }} />, placeholder: 'Enter Admin Username (e.g. admin)' },
+];
+
+export default function LoginPage() {
   const navigate = useNavigate();
   useLocation();
   const { login, verifyOtp, pendingEmail, user, isAuthenticated, loading } = useAuth();
 
+  const [activeStakeholder, setActiveStakeholder] = useState('STUDENT');
   const [step, setStep] = useState('login');
   const [showPwd, setShowPwd] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [alertMsg, setAlertMsg] = useState('');
   const [form, setForm] = useState({ username: '', password: '' });
+  const [rememberMe, setRememberMe] = useState(true);
   const [otp, setOtp] = useState('');
   const [otpUser, setOtpUser] = useState(pendingEmail || '');
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => { setMounted(true); }, []);
 
   useEffect(() => {
     if (!loading && isAuthenticated && user) {
       navigate(DASH[user.role] || '/', { replace: true });
+      return;
+    }
+
+    // Auto-load remembered credentials for the last active or default stakeholder
+    const lastRole = localStorage.getItem('campusiq_last_role') || 'STUDENT';
+    setActiveStakeholder(lastRole);
+    const saved = localStorage.getItem(`campusiq_remembered_${lastRole}`);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed?.username) {
+          setForm({ username: parsed.username || '', password: parsed.password || '' });
+          setRememberMe(true);
+        }
+      } catch (err) {
+        // ignore JSON parse error
+      }
     }
   }, [loading, isAuthenticated, user, navigate]);
 
-  if (loading) {
-    return (
-      <div style={{
-        height: '100vh', display: 'flex', alignItems: 'center',
-        justifyContent: 'center',
-        background: `linear-gradient(135deg, ${C.primaryDark}, ${C.primary}, ${C.primaryLight})`,
-        backgroundSize: '400% 400%',
-        animation: 'gradShift 8s ease infinite',
-      }}>
-        <div style={{ textAlign: 'center', color: '#fff' }}>
-          <div style={{
-            width: 52, height: 52, borderRadius: 14,
-            background: `linear-gradient(135deg, ${C.accent}, ${C.accentLight})`,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontWeight: 900, fontSize: '1.2rem', color: C.primary,
-            margin: '0 auto 20px', boxShadow: `0 8px 24px ${C.accent}50`,
-            animation: 'pulseScale 1.5s ease infinite',
-          }}>IQ</div>
-          <p style={{ fontWeight: 600, opacity: 0.8 }}>Loading CampusIQ+...</p>
-        </div>
-        <style>{`
-          @keyframes gradShift { 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
-          @keyframes pulseScale { 0%,100%{transform:scale(1)} 50%{transform:scale(1.08)} }
-        `}</style>
-      </div>
-    );
-  }
+  const handleStakeholderChange = (role) => {
+    setActiveStakeholder(role);
+    setError('');
+    localStorage.setItem('campusiq_last_role', role);
+    const saved = localStorage.getItem(`campusiq_remembered_${role}`);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed?.username) {
+          setForm({ username: parsed.username || '', password: parsed.password || '' });
+          setRememberMe(true);
+          return;
+        }
+      } catch (e) {}
+    }
+    setForm({ username: '', password: '' });
+  };
+
+  const currentStakeholder = STAKEHOLDERS.find(s => s.role === activeStakeholder) || STAKEHOLDERS[0];
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -76,13 +86,24 @@ const LoginPage = () => {
     }
     setBusy(true);
     setError('');
-    setSuccess('');
+
+    // Save or clear credentials based on Remember Me
+    if (rememberMe) {
+      localStorage.setItem('campusiq_last_role', activeStakeholder);
+      localStorage.setItem(`campusiq_remembered_${activeStakeholder}`, JSON.stringify({
+        username: form.username.trim(),
+        password: form.password
+      }));
+    } else {
+      localStorage.removeItem(`campusiq_remembered_${activeStakeholder}`);
+    }
+
     try {
       const result = await login(form.username.trim(), form.password);
       if (result.twoFactorRequired) {
         setOtpUser(form.username.trim());
         setStep('otp');
-        setSuccess('OTP sent to your registered email.');
+        setAlertMsg('OTP sent to your registered institutional email.');
         return;
       }
       const dest = DASH[result.role] || '/';
@@ -97,12 +118,16 @@ const LoginPage = () => {
 
   const handleOtp = async (e) => {
     e.preventDefault();
-    if (otp.length !== 6) { setError('Enter the 6-digit OTP'); return; }
+    if (otp.length !== 6) {
+      setError('Enter the 6-digit OTP');
+      return;
+    }
     setBusy(true);
     setError('');
     try {
       const result = await verifyOtp(otpUser, otp);
-      navigate(DASH[result.role] || '/', { replace: true });
+      const dest = DASH[result.role] || '/';
+      navigate(dest, { replace: true });
     } catch (err) {
       setError(err?.response?.data?.message || 'Invalid or expired OTP');
     } finally {
@@ -110,333 +135,493 @@ const LoginPage = () => {
     }
   };
 
-  const fillDemo = (username) => {
-    setForm({ username, password: 'campusiq@1234' });
-    setError('');
-    setSuccess('');
-  };
-
-  const inputStyle = {
-    width: '100%', padding: '14px 16px 14px 48px',
-    border: `1.5px solid rgba(226,232,240,0.6)`, borderRadius: 14,
-    fontSize: '0.92rem', outline: 'none',
-    background: 'rgba(248,250,252,0.6)',
-    fontFamily: "'Inter', system-ui, sans-serif", boxSizing: 'border-box',
-    color: C.text, transition: 'all 0.3s cubic-bezier(0.22,1,0.36,1)',
-    backdropFilter: 'blur(8px)',
-  };
-
-  const btnPrimary = {
-    width: '100%', padding: '14px', borderRadius: 14,
-    background: `linear-gradient(135deg, ${C.primary}, ${C.secondary})`,
-    color: '#fff', fontWeight: 700, fontSize: '0.95rem',
-    border: 'none', cursor: busy ? 'not-allowed' : 'pointer',
-    opacity: busy ? 0.7 : 1, fontFamily: "'Inter', system-ui, sans-serif",
-    transition: 'all 0.3s cubic-bezier(0.22,1,0.36,1)',
-    boxShadow: `0 4px 16px ${C.primary}40`,
-    letterSpacing: '-0.01em',
-    position: 'relative', overflow: 'hidden',
-  };
-
   return (
     <div style={{
-      minHeight: '100vh', display: 'flex',
-      background: `linear-gradient(135deg, ${C.primaryDark} 0%, ${C.primary} 40%, ${C.primaryLight} 70%, ${C.secondary} 100%)`,
-      backgroundSize: '400% 400%',
-      animation: 'gradShift 15s ease infinite',
-      fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif",
-      position: 'relative', overflow: 'hidden',
+      minHeight: '100vh',
+      width: '100vw',
+      backgroundColor: '#f1f5f9',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      position: 'relative',
+      overflow: 'hidden',
+      fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
     }}>
-      {/* Floating orbs */}
+      {/* Background Geometric Accent Orbs */}
       <div style={{
-        position: 'absolute', top: '10%', left: '15%', width: 300, height: 300,
-        borderRadius: '50%', background: 'radial-gradient(circle, rgba(37,99,235,0.12) 0%, transparent 60%)',
-        animation: 'floatOrb1 8s ease-in-out infinite', pointerEvents: 'none',
-      }} />
-      <div style={{
-        position: 'absolute', bottom: '15%', right: '10%', width: 250, height: 250,
-        borderRadius: '50%', background: 'radial-gradient(circle, rgba(245,158,11,0.1) 0%, transparent 60%)',
-        animation: 'floatOrb2 10s ease-in-out infinite', pointerEvents: 'none',
-      }} />
-      <div style={{
-        position: 'absolute', top: '50%', left: '45%', width: 180, height: 180,
-        borderRadius: '50%', background: 'radial-gradient(circle, rgba(59,130,246,0.08) 0%, transparent 60%)',
-        animation: 'floatOrb3 12s ease-in-out infinite', pointerEvents: 'none',
+        position: 'absolute',
+        width: 340,
+        height: 340,
+        borderRadius: '50%',
+        background: 'linear-gradient(135deg, #00d2b4, #0284c7)',
+        top: '12%',
+        right: '27%',
+        zIndex: 1,
+        opacity: 0.95
       }} />
 
-      {/* ── Left panel ── */}
       <div style={{
-        flex: 1, display: 'flex', flexDirection: 'column',
-        justifyContent: 'center', padding: '64px',
-        color: '#fff', position: 'relative', zIndex: 1,
-        opacity: mounted ? 1 : 0,
-        transform: mounted ? 'translateX(0)' : 'translateX(-30px)',
-        transition: 'all 0.7s cubic-bezier(0.22,1,0.36,1) 0.2s',
+        position: 'absolute',
+        width: 320,
+        height: 320,
+        borderRadius: '50%',
+        backgroundColor: '#9b8edc',
+        bottom: '10%',
+        left: '25%',
+        zIndex: 1,
+        opacity: 0.95
+      }} />
+
+      <div style={{
+        position: 'absolute',
+        width: 22,
+        height: 22,
+        borderRadius: '50%',
+        backgroundColor: '#00d2b4',
+        bottom: '36%',
+        left: '20%',
+        zIndex: 1
+      }} />
+
+      <div style={{
+        position: 'absolute',
+        width: 18,
+        height: 18,
+        borderRadius: '50%',
+        backgroundColor: '#0284c7',
+        top: '36%',
+        right: '20%',
+        zIndex: 1
+      }} />
+
+      {/* Main Container */}
+      <div style={{
+        position: 'relative',
+        zIndex: 10,
+        width: '100%',
+        maxWidth: 440,
+        margin: '20px',
+        boxSizing: 'border-box'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 48 }}>
+        {/* Institutional & Project Header Banner */}
+        <div style={{
+          textAlign: 'center',
+          marginBottom: 16
+        }}>
+          {/* Brand Logo & Name */}
           <div style={{
-            width: 56, height: 56, borderRadius: 16,
-            background: `linear-gradient(135deg, ${C.accent}, ${C.accentLight})`,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontWeight: 900, fontSize: '1.3rem', color: C.primary,
-            boxShadow: `0 8px 32px ${C.accent}40`,
-          }}>IQ</div>
-          <div>
-            <span style={{ fontWeight: 800, fontSize: '1.8rem', letterSpacing: '-0.03em' }}>CampusIQ+</span>
-            <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.4)', letterSpacing: '0.1em', marginTop: 2 }}>
-              SMART CAMPUS PLATFORM
-            </div>
-          </div>
-        </div>
-
-        <h1 style={{
-          fontSize: '2.8rem', fontWeight: 800, lineHeight: 1.15,
-          marginBottom: 20, letterSpacing: '-0.03em',
-        }}>
-          Smart Campus,<br />Smarter Futures.
-        </h1>
-        <p style={{
-          color: 'rgba(255,255,255,0.55)', lineHeight: 1.7, maxWidth: 420, marginBottom: 40,
-          fontSize: '1.05rem',
-        }}>
-          AI-powered learning platform with real-time analytics, attendance tracking,
-          exam management, and personalized insights.
-        </p>
-
-        {[
-          ['🎓', 'AI Performance Analytics'],
-          ['📊', 'Real-time Attendance Insights'],
-          ['💬', 'Intelligent CampusMate Chatbot'],
-          ['💳', 'Seamless Fee Management'],
-        ].map(([icon, label], i) => (
-          <div key={label} style={{
-            display: 'flex', alignItems: 'center', gap: 14, marginBottom: 16,
-            opacity: mounted ? 1 : 0,
-            transform: mounted ? 'translateY(0)' : 'translateY(12px)',
-            transition: `all 0.5s cubic-bezier(0.22,1,0.36,1) ${0.5 + i * 0.1}s`,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 10,
+            backgroundColor: '#ffffff',
+            padding: '8px 20px',
+            borderRadius: 30,
+            boxShadow: '0 4px 14px rgba(15, 23, 42, 0.06)',
+            border: '1px solid #e2e8f0',
+            marginBottom: 8
           }}>
             <div style={{
-              width: 40, height: 40, borderRadius: 12,
-              background: 'rgba(255,255,255,0.08)',
-              backdropFilter: 'blur(8px)',
-              border: '1px solid rgba(255,255,255,0.1)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: '1.1rem',
-            }}>{icon}</div>
-            <span style={{ color: 'rgba(255,255,255,0.8)', fontWeight: 500, fontSize: '0.95rem' }}>{label}</span>
-          </div>
-        ))}
-      </div>
-
-      {/* ── Right login card ── */}
-      <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        padding: 40, minWidth: 440, position: 'relative', zIndex: 1,
-      }}>
-        <div style={{
-          width: '100%', maxWidth: 430,
-          background: 'rgba(255,255,255,0.88)',
-          backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)',
-          borderRadius: 24, padding: 40,
-          boxShadow: '0 32px 80px rgba(0,0,0,0.25), 0 0 0 1px rgba(255,255,255,0.2)',
-          border: '1px solid rgba(255,255,255,0.3)',
-          opacity: mounted ? 1 : 0,
-          transform: mounted ? 'translateY(0) scale(1)' : 'translateY(20px) scale(0.96)',
-          transition: 'all 0.7s cubic-bezier(0.22,1,0.36,1) 0.3s',
-        }}>
-          <div style={{ marginBottom: 28 }}>
-            {step === 'otp' && (
-              <button onClick={() => { setStep('login'); setError(''); setSuccess(''); }} style={{
-                background: 'none', border: 'none', cursor: 'pointer',
-                color: C.secondary, fontSize: '1.1rem', padding: '0 8px 0 0',
-                transition: 'transform 0.2s',
-              }}>←</button>
-            )}
-            <h2 style={{
-              margin: 0, fontWeight: 800, color: C.text, fontSize: '1.6rem',
-              letterSpacing: '-0.03em',
+              width: 32,
+              height: 32,
+              borderRadius: 8,
+              background: 'linear-gradient(135deg, #2563eb, #0284c7)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#ffffff'
             }}>
-              {step === 'login' ? 'Welcome back' : 'Verify OTP'}
-            </h2>
-            <p style={{ margin: '6px 0 0', color: C.textSub, fontSize: '0.88rem' }}>
-              {step === 'login' ? 'Sign in to your CampusIQ+ account' : `OTP sent to your email`}
-            </p>
-          </div>
-
-          {error && (
-            <div style={{
-              background: '#fef2f2', border: `1px solid ${C.danger}20`,
-              color: C.danger, padding: '12px 16px', borderRadius: 12,
-              fontSize: '0.85rem', marginBottom: 18, fontWeight: 500,
-              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-              animation: 'shakeX 0.4s ease',
-            }}>
-              <span>⚠️ {error}</span>
-              <span onClick={() => setError('')} style={{ cursor: 'pointer', opacity: 0.6, fontSize: '0.9rem' }}>✕</span>
+              <AccountBalance sx={{ fontSize: 19 }} />
             </div>
-          )}
-
-          {success && (
-            <div style={{
-              background: '#f0fdf4', border: '1px solid #86efac50',
-              color: C.success, padding: '12px 16px', borderRadius: 12,
-              fontSize: '0.85rem', marginBottom: 18, fontWeight: 500,
-            }}>
-              ✅ {success}
-            </div>
-          )}
-
-          {step === 'login' && (
-            <form onSubmit={handleLogin}>
-              <div style={{ position: 'relative', marginBottom: 18 }}>
-                <span style={{
-                  position: 'absolute', left: 16, top: '50%',
-                  transform: 'translateY(-50%)', pointerEvents: 'none',
-                  color: C.textMuted, fontSize: '1.1rem',
-                }}>👤</span>
-                <input
-                  style={inputStyle}
-                  type="text"
-                  placeholder="Username (e.g. admin, ravi2268)"
-                  value={form.username}
-                  onChange={e => setForm(p => ({ ...p, username: e.target.value }))}
-                  autoComplete="username"
-                  autoFocus
-                />
+            <div style={{ textAlign: 'left' }}>
+              <div style={{
+                fontSize: 17,
+                fontWeight: 800,
+                color: '#0f172a',
+                lineHeight: 1.1,
+                letterSpacing: '-0.3px'
+              }}>
+                CampusIQ<span style={{ color: '#0284c7' }}>+</span>
               </div>
+              <div style={{
+                fontSize: 10.5,
+                fontWeight: 700,
+                color: '#64748b',
+                letterSpacing: '0.04em',
+                textTransform: 'uppercase'
+              }}>
+                AI Campus Intelligence Platform
+              </div>
+            </div>
+            <div style={{
+              backgroundColor: '#eff6ff',
+              color: '#1d4ed8',
+              fontSize: 10.5,
+              fontWeight: 700,
+              padding: '3px 8px',
+              borderRadius: 12,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 3,
+              border: '1px solid #dbeafe'
+            }}>
+              <AutoAwesome sx={{ fontSize: 11 }} /> AI
+            </div>
+          </div>
+        </div>
 
-              <div style={{ position: 'relative', marginBottom: 28 }}>
-                <span style={{
-                  position: 'absolute', left: 16, top: '50%',
-                  transform: 'translateY(-50%)', pointerEvents: 'none',
-                  color: C.textMuted, fontSize: '1.1rem',
-                }}>🔒</span>
-                <input
-                  style={{ ...inputStyle, paddingRight: 48 }}
-                  type={showPwd ? 'text' : 'password'}
-                  placeholder="Password"
-                  value={form.password}
-                  onChange={e => setForm(p => ({ ...p, password: e.target.value }))}
-                  autoComplete="current-password"
-                />
+        {/* Clear White Login Card */}
+        <div style={{
+          backgroundColor: '#ffffff',
+          borderRadius: 12,
+          boxShadow: '0 20px 45px rgba(15, 23, 42, 0.12), 0 4px 12px rgba(15, 23, 42, 0.05)',
+          border: '1px solid #e2e8f0',
+          padding: '32px 30px 24px',
+          boxSizing: 'border-box'
+        }}>
+          {/* Top Lock Security Icon */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'center',
+            marginBottom: 14
+          }}>
+            <div style={{
+              width: 44,
+              height: 44,
+              borderRadius: 10,
+              border: '2px solid #06b6d4',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#06b6d4',
+              backgroundColor: '#ecfeff'
+            }}>
+              <LockOutlined sx={{ fontSize: 22, color: '#06b6d4' }} />
+            </div>
+          </div>
+
+          {/* Title */}
+          <h2 style={{
+            textAlign: 'center',
+            fontSize: 20,
+            fontWeight: 700,
+            color: '#0f172a',
+            margin: '0 0 6px',
+            letterSpacing: '-0.3px'
+          }}>
+            {currentStakeholder.label} Login
+          </h2>
+          <p style={{
+            textAlign: 'center',
+            fontSize: 13,
+            color: '#64748b',
+            margin: '0 0 16px',
+          }}>
+            Select your stakeholder portal to access your dashboard
+          </p>
+
+          {/* 3 Stakeholders Selector */}
+          <div style={{
+            display: 'flex',
+            backgroundColor: '#f1f5f9',
+            padding: 4,
+            borderRadius: 10,
+            border: '1px solid #e2e8f0',
+            marginBottom: 18,
+            gap: 4
+          }}>
+            {STAKEHOLDERS.map((stk) => {
+              const isSelected = activeStakeholder === stk.role;
+              return (
                 <button
+                  key={stk.role}
                   type="button"
-                  onClick={() => setShowPwd(p => !p)}
+                  onClick={() => handleStakeholderChange(stk.role)}
                   style={{
-                    position: 'absolute', right: 14, top: '50%',
-                    transform: 'translateY(-50%)', background: 'none',
-                    border: 'none', cursor: 'pointer', color: C.textMuted,
-                    transition: 'color 0.2s',
+                    flex: 1,
+                    padding: '8px 10px',
+                    borderRadius: 8,
+                    border: 'none',
+                    backgroundColor: isSelected ? '#ffffff' : 'transparent',
+                    color: isSelected ? '#0284c7' : '#64748b',
+                    fontWeight: isSelected ? 700 : 600,
+                    fontSize: 12.5,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 6,
+                    boxShadow: isSelected ? '0 2px 5px rgba(0,0,0,0.08)' : 'none',
+                    transition: 'all 0.18s ease'
                   }}
                 >
-                  {showPwd ? '🙈' : '👁️'}
+                  {stk.icon}
+                  <span>{stk.label}</span>
                 </button>
-              </div>
+              );
+            })}
+          </div>
 
-              <button type="submit" disabled={busy} style={btnPrimary}
-                onMouseOver={e => { if (!busy) e.target.style.transform = 'translateY(-2px)'; e.target.style.boxShadow = `0 8px 28px ${C.primary}50`; }}
-                onMouseOut={e => { e.target.style.transform = 'translateY(0)'; e.target.style.boxShadow = `0 4px 16px ${C.primary}40`; }}
+          {/* Dismissible Status / Alert Bar */}
+          {alertMsg && !error && (
+            <div style={{
+              backgroundColor: '#eff6ff',
+              border: '1px solid #dbeafe',
+              borderRadius: 6,
+              padding: '8px 12px',
+              marginBottom: 16,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              color: '#1d4ed8',
+              fontSize: 12,
+              fontWeight: 500
+            }}>
+              <span>{alertMsg}</span>
+              <button
+                type="button"
+                onClick={() => setAlertMsg('')}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: '#1d4ed8',
+                  padding: 0,
+                  display: 'flex'
+                }}
               >
-                {busy ? 'Signing in…' : 'Sign In →'}
+                <Close sx={{ fontSize: 14 }} />
               </button>
+            </div>
+          )}
 
-              {/* Demo quick-fill */}
-              <div style={{
-                margin: '24px 0 10px', textAlign: 'center', color: C.textMuted,
-                fontSize: '0.72rem', letterSpacing: '0.04em',
-              }}>
-                QUICK LOGIN — password: campusiq@1234
-              </div>
-              <div style={{ display: 'flex', gap: 8 }}>
-                {[
-                  { label: '👨‍💼 Admin', un: 'admin' },
-                  { label: '👨‍🏫 Faculty', un: 'faculty1' },
-                  { label: '🎓 Student', un: 'ravi2268' },
-                ].map(({ label, un }) => (
-                  <button
-                    key={un}
-                    type="button"
-                    onClick={() => fillDemo(un)}
+          {/* Error Alert */}
+          {error && (
+            <div style={{
+              backgroundColor: '#fee2e2',
+              border: '1px solid #fecaca',
+              borderRadius: 6,
+              padding: '8px 12px',
+              marginBottom: 16,
+              color: '#b91c1c',
+              fontSize: 12,
+              fontWeight: 500
+            }}>
+              {error}
+            </div>
+          )}
+
+          {/* Form */}
+          {step === 'login' ? (
+            <form onSubmit={handleLogin} method="POST">
+              {/* Username / Roll No Input */}
+              <div style={{ marginBottom: 12 }}>
+                <div style={{
+                  backgroundColor: '#eef2ff',
+                  border: '1px solid #cbd5e1',
+                  borderRadius: 6,
+                  padding: '10px 12px',
+                  display: 'flex',
+                  alignItems: 'center'
+                }}>
+                  <PersonOutline sx={{ fontSize: 18, color: '#64748b', marginRight: '8px' }} />
+                  <input
+                    type="text"
+                    id="username"
+                    name="username"
+                    placeholder={currentStakeholder.placeholder}
+                    value={form.username}
+                    onChange={(e) => setForm({ ...form, username: e.target.value })}
+                    autoComplete="username"
+                    required
                     style={{
-                      flex: 1, padding: '10px 4px',
-                      border: `1.5px solid rgba(226,232,240,0.6)`, borderRadius: 12,
-                      background: 'rgba(248,250,252,0.5)', cursor: 'pointer',
-                      fontSize: '0.75rem', fontWeight: 600, color: C.textSub,
-                      fontFamily: "'Inter', system-ui, sans-serif",
-                      transition: 'all 0.25s cubic-bezier(0.22,1,0.36,1)',
-                      backdropFilter: 'blur(4px)',
+                      width: '100%',
+                      border: 'none',
+                      backgroundColor: 'transparent',
+                      outline: 'none',
+                      fontSize: 13.5,
+                      fontWeight: 600,
+                      color: '#0f172a'
                     }}
-                    onMouseOver={e => {
-                      e.target.style.background = `${C.secondary}10`;
-                      e.target.style.borderColor = `${C.secondary}40`;
-                      e.target.style.transform = 'translateY(-2px)';
-                      e.target.style.color = C.secondary;
+                  />
+                </div>
+              </div>
+
+              {/* Password Input */}
+              <div style={{ marginBottom: 14 }}>
+                <div style={{
+                  backgroundColor: '#eef2ff',
+                  border: '1px solid #cbd5e1',
+                  borderRadius: 6,
+                  padding: '10px 12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  position: 'relative'
+                }}>
+                  <LockOutlined sx={{ fontSize: 18, color: '#64748b', marginRight: '8px' }} />
+                  <input
+                    type={showPwd ? 'text' : 'password'}
+                    id="password"
+                    name="password"
+                    placeholder="Password"
+                    value={form.password}
+                    onChange={(e) => setForm({ ...form, password: e.target.value })}
+                    autoComplete="current-password"
+                    required
+                    style={{
+                      width: '100%',
+                      border: 'none',
+                      backgroundColor: 'transparent',
+                      outline: 'none',
+                      fontSize: 13.5,
+                      fontWeight: 600,
+                      color: '#0f172a',
+                      letterSpacing: showPwd ? 'normal' : '1.5px'
                     }}
-                    onMouseOut={e => {
-                      e.target.style.background = 'rgba(248,250,252,0.5)';
-                      e.target.style.borderColor = 'rgba(226,232,240,0.6)';
-                      e.target.style.transform = 'translateY(0)';
-                      e.target.style.color = C.textSub;
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPwd(!showPwd)}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      color: '#64748b',
+                      padding: 0,
+                      display: 'flex'
                     }}
                   >
-                    {label}
+                    {showPwd ? <VisibilityOff sx={{ fontSize: 18 }} /> : <Visibility sx={{ fontSize: 18 }} />}
                   </button>
-                ))}
+                </div>
               </div>
-            </form>
-          )}
 
-          {step === 'otp' && (
-            <form onSubmit={handleOtp} style={{
-              animation: 'slideInR 0.4s cubic-bezier(0.22,1,0.36,1)',
-            }}>
+              {/* Remember Me */}
               <div style={{
-                background: `${C.secondary}08`, border: `1px solid ${C.secondary}20`,
-                borderRadius: 14, padding: '16px 18px', marginBottom: 22,
-                backdropFilter: 'blur(4px)',
+                display: 'flex',
+                alignItems: 'center',
+                marginBottom: 18,
+                fontSize: 12.5,
+                color: '#475569'
               }}>
-                <p style={{ margin: 0, fontWeight: 600, color: C.secondary, fontSize: '0.9rem' }}>🔑 Two-Factor Auth</p>
-                <p style={{ margin: '4px 0 0', color: C.textSub, fontSize: '0.8rem' }}>
-                  Check your email for the 6-digit code
-                </p>
+                <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', gap: 6 }}>
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    style={{
+                      accentColor: '#0099ff',
+                      cursor: 'pointer',
+                      width: 15,
+                      height: 15
+                    }}
+                  />
+                  <span>Remember Me</span>
+                </label>
               </div>
-              <input
+
+              {/* Vibrant Blue Login Button */}
+              <button
+                type="submit"
+                disabled={busy}
                 style={{
-                  ...inputStyle, paddingLeft: 16, letterSpacing: '0.4em',
-                  fontSize: '1.5rem', textAlign: 'center', marginBottom: 22,
-                  fontFamily: "'JetBrains Mono', monospace",
+                  width: '100%',
+                  padding: '11px',
+                  backgroundColor: '#0099ff',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: 6,
+                  fontSize: 14,
+                  fontWeight: 700,
+                  cursor: busy ? 'not-allowed' : 'pointer',
+                  opacity: busy ? 0.75 : 1,
+                  boxShadow: '0 4px 12px rgba(0, 153, 255, 0.3)',
+                  transition: 'background-color 0.15s ease'
                 }}
-                type="text" inputMode="numeric" maxLength={6}
-                placeholder="● ● ● ● ● ●"
+              >
+                {busy ? 'Authenticating...' : 'Login'}
+              </button>
+            </form>
+          ) : (
+            /* OTP Form */
+            <form onSubmit={handleOtp}>
+              <p style={{ fontSize: 13, color: '#475569', marginBottom: 12 }}>
+                Enter the 6-digit verification OTP sent to your registered institutional account.
+              </p>
+              <input
+                type="text"
+                maxLength={6}
+                placeholder="000000"
                 value={otp}
-                onChange={e => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                autoFocus
+                onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
+                required
+                style={{
+                  width: '100%',
+                  boxSizing: 'border-box',
+                  textAlign: 'center',
+                  letterSpacing: 8,
+                  fontSize: 22,
+                  fontWeight: 800,
+                  padding: '10px',
+                  backgroundColor: '#eef2ff',
+                  border: '1px solid #cbd5e1',
+                  borderRadius: 6,
+                  marginBottom: 16,
+                  color: '#0f172a',
+                  outline: 'none'
+                }}
               />
-              <button type="submit" disabled={busy || otp.length !== 6}
-                style={{ ...btnPrimary, opacity: (busy || otp.length !== 6) ? 0.5 : 1 }}>
-                {busy ? 'Verifying…' : 'Verify & Sign In'}
+              <button
+                type="submit"
+                disabled={busy}
+                style={{
+                  width: '100%',
+                  padding: '11px',
+                  backgroundColor: '#0099ff',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: 6,
+                  fontSize: 14,
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+              >
+                {busy ? 'Verifying...' : 'Verify & Continue'}
               </button>
             </form>
           )}
+
+          {/* Footer Links */}
+          <div style={{
+            marginTop: 18,
+            textAlign: 'center'
+          }}>
+            <button
+              type="button"
+              onClick={() => setAlertMsg('Password reset instructions have been sent to your administrator.')}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#475569',
+                fontSize: 12,
+                fontWeight: 500,
+                cursor: 'pointer',
+                marginBottom: 6,
+                display: 'inline-block'
+              }}
+            >
+              Forgot Your Password?
+            </button>
+            <div style={{
+              fontSize: 11.5,
+              color: '#94a3b8',
+              marginTop: 2
+            }}>
+              © 2026 — CampusIQ+ Smart Campus Intelligence Platform
+            </div>
+          </div>
         </div>
       </div>
-
-      <style>{`
-        @keyframes gradShift { 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
-        @keyframes floatOrb1 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(30px,-20px)} }
-        @keyframes floatOrb2 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(-20px,30px)} }
-        @keyframes floatOrb3 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(15px,15px)} }
-        @keyframes slideInR { 0%{opacity:0;transform:translateX(20px)} 100%{opacity:1;transform:translateX(0)} }
-        @keyframes shakeX { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-8px)} 40%{transform:translateX(8px)} 60%{transform:translateX(-4px)} 80%{transform:translateX(4px)} }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        input:focus { border-color: ${C.secondary} !important; background: rgba(255,255,255,0.9) !important; box-shadow: 0 0 0 3px ${C.secondary}15 !important; }
-        @media (max-width: 768px) {
-          div[style*="flex: 1"][style*="padding: 64px"] { display: none !important; }
-          div[style*="minWidth: 440"] { min-width: auto !important; width: 100%; padding: 20px !important; }
-        }
-      `}</style>
     </div>
   );
-};
-
-export default LoginPage;
+}

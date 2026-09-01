@@ -58,21 +58,24 @@ export const AuthProvider = ({ children }) => {
 
   // ── Login ─────────────────────────────────────────────────────────────────
   const login = useCallback(async (username, password) => {
-    const response = await authAPI.login({ username, password });
-    const data = response.data.data;
-    if (data.twoFactorRequired) {
-      setPendingEmail(username);
+    const response = await authAPI.login({ username: username.trim(), password });
+    const data = response.data?.data;
+    if (data && data.twoFactorRequired) {
+      setPendingEmail(username.trim());
       return { twoFactorRequired: true };
     }
-    const userData = {
-      id:       data.userId,
-      username: data.username,
-      name:     data.name,
-      email:    data.email,
-      role:     data.role,
-    };
-    saveSession(data.accessToken, userData);
-    return { success: true, role: data.role };
+    if (data && data.accessToken) {
+      const userData = {
+        id:       data.userId,
+        username: data.username || username.trim(),
+        name:     data.name || username.trim(),
+        email:    data.email,
+        role:     data.role,
+      };
+      saveSession(data.accessToken, userData);
+      return { success: true, role: data.role };
+    }
+    throw new Error('Authentication failed: Invalid credentials.');
   }, [saveSession]);
 
   // ── Verify OTP ────────────────────────────────────────────────────────────

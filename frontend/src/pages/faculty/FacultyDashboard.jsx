@@ -85,12 +85,12 @@ export default function FacultyDashboard() {
   const recentSchedules = schedules.slice(0, 5);
 
   const quickActions = [
+    { label: 'Marks & Continuous Eval', path: '/admin/academic-records', icon: <School fontSize="small" /> },
     { label: 'Course Catalog', path: '/faculty/courses', icon: <MenuBook fontSize="small" /> },
+    { label: 'Record Attendance', path: '/student/attendance', icon: <CalendarMonth fontSize="small" /> },
     { label: 'Class Timetable', path: '/faculty/timetable', icon: <Schedule fontSize="small" /> },
     { label: 'Curriculum Log', path: '/faculty/schedule', icon: <LibraryBooks fontSize="small" /> },
-    { label: 'Record Attendance', path: '/student/attendance', icon: <CalendarMonth fontSize="small" /> },
-    { label: 'Student Directory', path: '/admin/students', icon: <People fontSize="small" /> },
-    { label: 'Faculty Profile', path: '/faculty/profile', icon: <School fontSize="small" /> },
+    { label: 'Faculty Profile', path: '/faculty/profile', icon: <People fontSize="small" /> },
   ];
 
   return (

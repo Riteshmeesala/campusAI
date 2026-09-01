@@ -1,0 +1,75 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowedOrigins:
+              - "http://localhost:3000"
+              - "http://localhost:4200"
+              - "http://127.0.0.1:3000"
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - OPTIONS
+              - PATCH
+            allowedHeaders:
+              - "*"
+            allowCredentials: true
+            maxAge: 3600
+      discovery:
+        locator:
+          enabled: true
+          lowerCaseServiceId: true
+      routes:
+        # Auth & Users Route
+        - id: auth-service-route
+          uri: lb://auth-service
+          predicates:
+            - Path=/api/auth/**, /api/users/**, /api/registrations/**
+
+        # Academic Services Route
+        - id: academic-service-route
+          uri: lb://academic-service
+          predicates:
+            - Path=/api/courses/**, /api/attendance/**, /api/timetable/**, /api/timetables/**, /api/schedule/**, /api/faculty-schedules/**, /api/faculty-assignments/**, /api/student-services/**, /api/leaves/**, /api/certificates/**, /api/grievances/**, /api/mentoring/**, /api/surveys/**, /api/library/**, /api/placements/**, /api/projects/**, /api/campus-services/**, /api/warnings/**, /api/department-events/**
+
+        # Assessment Services Route
+        - id: assessment-service-route
+          uri: lb://assessment-service
+          predicates:
+            - Path=/api/exams/**, /api/results/**, /api/cgpa/**, /api/analytics/**, /api/academic-records/**
+
+        # Finance Services Route
+        - id: finance-service-route
+          uri: lb://finance-service
+          predicates:
+            - Path=/api/fees/**, /api/payments/**, /api/payroll/**
+
+        # Campus AI & Notifications Route
+        - id: campus-ai-service-route
+          uri: lb://campus-ai-service
+          predicates:
+            - Path=/api/chatbot/**, /api/announcements/**, /api/notifications/**, /api/ai/**
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+  instance:
+    prefer-ip-address: true
+    ip-address: 127.0.0.1
+    hostname: localhost
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,gateway

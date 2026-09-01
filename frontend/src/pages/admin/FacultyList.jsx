@@ -9,8 +9,9 @@ import {
 } from '@mui/material';
 import {
   Search, Visibility, PersonAdd, Edit, Delete, Groups,
-  AddCircleOutline
+  AddCircleOutline, FileDownload, School as SchoolIcon
 } from '@mui/icons-material';
+import * as XLSX from 'xlsx';
 import { userAPI } from '../../services/api';
 import PageHeader from '../../components/shared/PageHeader';
 import { COLORS } from '../../theme/theme';
@@ -178,6 +179,32 @@ export default function FacultyList() {
     }
   };
 
+  const handleExportExcel = () => {
+    if (faculty.length === 0) {
+      toast.warning('No faculty records to export');
+      return;
+    }
+    const exportData = filtered.map((f, idx) => ({
+      'S.No': idx + 1,
+      'Full Name': f.name,
+      'Employee ID': f.employeeId || f.enrollmentNumber || '',
+      'Username': f.username,
+      'Email': f.email,
+      'Phone Number': f.phoneNumber || '',
+      'Department': f.department || '',
+      'Designation': f.designation || 'Faculty Member',
+      'Qualifications': f.qualifications || 'M.Tech / Ph.D.',
+      'Experience': f.experienceYears || '5+ Years',
+      'Specialization': f.specialization || 'Computer Science',
+      'Status': f.active ? 'ACTIVE' : 'INACTIVE',
+    }));
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Faculty');
+    XLSX.writeFile(workbook, `SmartCampus_Faculty_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    toast.success(`Exported ${exportData.length} faculty profiles to Excel`);
+  };
+
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
@@ -193,21 +220,39 @@ export default function FacultyList() {
         subtitle="Manage professors, assistant professors, assign owned departments, and configure credentials"
         breadcrumbs={['Home', 'Admin', 'Faculty']}
         action={
-          <Button
-            variant="contained"
-            startIcon={<PersonAdd />}
-            onClick={() => setAddOpen(true)}
-            sx={{
-              background: COLORS.gradBlue,
-              borderRadius: 3,
-              px: 2.5,
-              py: 1,
-              fontWeight: 700,
-              boxShadow: '0 4px 14px rgba(37,99,235,0.3)',
-            }}
-          >
-            Add New Faculty
-          </Button>
+          <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
+            <Button
+              variant="outlined"
+              startIcon={<FileDownload />}
+              onClick={handleExportExcel}
+              sx={{
+                borderRadius: 3,
+                px: 2.2,
+                py: 1,
+                fontWeight: 700,
+                color: '#1d4ed8',
+                borderColor: '#bfdbfe',
+                '&:hover': { bgcolor: '#eff6ff', borderColor: '#93c5fd' }
+              }}
+            >
+              Export Excel
+            </Button>
+            <Button
+              variant="contained"
+              startIcon={<PersonAdd />}
+              onClick={() => setAddOpen(true)}
+              sx={{
+                background: COLORS.gradBlue,
+                borderRadius: 3,
+                px: 2.5,
+                py: 1,
+                fontWeight: 700,
+                boxShadow: '0 4px 14px rgba(37,99,235,0.3)',
+              }}
+            >
+              Add New Faculty
+            </Button>
+          </Box>
         }
       />
 

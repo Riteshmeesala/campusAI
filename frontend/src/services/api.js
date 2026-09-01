@@ -85,7 +85,8 @@ export const feeAPI = {
 // GET /exams
 export const examAPI = {
   createExam:   (data)       => api.post('/exams', data),
-  getAllExams:   ()           => api.get('/exams'),
+  getAll:       ()           => api.get('/exams'),
+  getAllExams:  ()           => api.get('/exams'),
   getUpcoming:  ()           => api.get('/exams/upcoming'),
   getExamById:  (id)         => api.get(`/exams/${id}`),
   updateExam:   (id, data)   => api.put(`/exams/${id}`, data),
@@ -115,21 +116,12 @@ export const analyticsAPI = {
 
 // GET /notifications
 export const notificationAPI = {
-  getAll: (page = 0, size = 20) =>
-  api.get('/notifications', { params: { page, size } })
-     .then(res => res.data.content),
-  getUnread:     () =>
-                    api.get('/notifications/unread'),
-
-  // ✅ ADD THIS FUNCTION
-  getUnreadCount: () =>
-                    api.get('/notifications/unread/count'),
-
-  markRead:      (id) =>
-                    api.patch(`/notifications/${id}/read`),
-
-  markAllRead:   () =>
-                    api.patch('/notifications/read-all'),
+  getAll:        (page = 0, size = 20) => api.get('/notifications', { params: { page, size } }),
+  getUnread:     () => api.get('/notifications/unread'),
+  getUnreadCount: () => api.get('/notifications/unread/count'),
+  markRead:      (id) => api.patch(`/notifications/${id}/read`),
+  markAllRead:   () => api.patch('/notifications/read-all'),
+  broadcast:     (data) => api.post('/notifications/broadcast', data),
 };
 
 // POST /chatbot/chat
@@ -171,45 +163,70 @@ export const notifAPI = notificationAPI;
 
 // GET /users/students, /users/faculty, /users/{id}, /users/stats
 export const userAPI = {
-  getStudents:        (params)        => api.get('/users/students', { params }),
-  getFaculty:         ()              => api.get('/users/faculty'),
-  getById:            (id)            => api.get(`/users/${id}`),
-  getMyProfile:       ()              => api.get('/users/me'),
-  getMyFull:          ()              => api.get('/users/me/full'),
-  getStats:           ()              => api.get('/users/stats'),
-  updateProfileImage: (profileImage)  => api.put('/users/me/profile-image', { profileImage }),
+  getStudents: (params) => api.get('/users/students', { params }),
+  getAllStudents: (params) => api.get('/users/students', { params }),
+  getFaculty: () => api.get('/users/faculty'),
+  getAllFaculty: () => api.get('/users/faculty'),
+  getById: (id) => api.get(`/users/${id}`),
+  getMyProfile: () => api.get('/users/me'),
+  getMyFull: () => api.get('/users/me/full'),
+  getStats: () => api.get('/users/stats'),
+  updateProfileImage: (profileImage) => api.put('/users/me/profile-image', { profileImage }),
   // ── ADMIN CREATE ──
-  createStudent:      (data)          => api.post('/users/students', data),
-  createFaculty:      (data)          => api.post('/users/faculty', data),
-  // ── ADMIN UPDATE/DELETE ──
-  updateUser:         (id, data)      => api.put(`/users/${id}`, data),
-  deleteUser:         (id)            => api.delete(`/users/${id}`),
+  createStudent: (data) => api.post('/users/students', data),
+  createMultipleStudents: (data) => api.post('/users/students/bulk', data),
+  createFaculty: (data) => api.post('/users/faculty', data),
+  createMultipleFaculty: (data) => api.post('/users/faculty/bulk', data),
+  // ── ADMIN UPDATE/DELETE/VERIFY ──
+  updateUser: (id, data) => api.put(`/users/${id}`, data),
+  deleteUser: (id) => api.delete(`/users/${id}`),
+  verifyUser: (id, data) => api.put(`/users/${id}/verify`, data),
+  updateStatus: (id, active) => api.put(`/users/${id}/status`, { active }),
+  broadcastEmail: (data) => api.post('/users/broadcast', data),
 };
 
 // GET /schedule/my, /schedule/course/{id}, /schedule/faculty/{id}
 export const scheduleAPI = {
-  addSchedule:    (data)     => api.post('/schedule', data),
-  getMySchedules: ()         => api.get('/schedule/my'),
-  getCourseSchedules: (id)   => api.get(`/schedule/course/${id}`),
-  getFacultySchedules: (id)  => api.get(`/schedule/faculty/${id}`),
-  deleteSchedule: (id)       => api.delete(`/schedule/${id}`),
+  addSchedule: (data) => api.post('/schedule', data),
+  getMySchedules: () => api.get('/schedule/my'),
+  getCourseSchedules: (id) => api.get(`/schedule/course/${id}`),
+  getFacultySchedules: (id) => api.get(`/schedule/faculty/${id}`),
+  deleteSchedule: (id) => api.delete(`/schedule/${id}`),
 };
 
 // GPA endpoints
 export const gpaAPI = {
-  getMyGpa:        ()            => api.get('/results/my/gpa'),
-  getStudentGpa:   (id)          => api.get(`/results/student/${id}/gpa`),
-  getSemesterGpa:  (id, sem)     => api.get(`/results/student/${id}/semester/${sem}`), 
+  getMyGpa: () => api.get('/results/my/gpa'),
+  getStudentGpa: (id) => api.get(`/results/student/${id}/gpa`),
+  getSemesterGpa: (id, sem) => api.get(`/results/student/${id}/semester/${sem}`), 
 };
 
 // CGPA publish — ADMIN ONLY
-// POST /cgpa/publish          → bulk upload CGPA values
-// GET  /cgpa/student/{id}     → view a student's CGPA history
-// GET  /cgpa/all              → all CGPA records
 export const cgpaUploadAPI = {
-  publishCgpa:    (data) => api.post('/cgpa/publish', data),
-  getStudentCgpa: (id)   => api.get(`/cgpa/student/${id}`),
-  getAllCgpa:      ()     => api.get('/cgpa/all'),
+  publishCgpa: (data) => api.post('/cgpa/publish', data),
+  getStudentCgpa: (id) => api.get(`/cgpa/student/${id}`),
+  getAllCgpa: () => api.get('/cgpa/all'),
+};
+
+// ── SEMESTER-WISE ACADEMIC RECORDS (1-1 to 4-2) ──
+export const academicRecordAPI = {
+  getMyRecords: () => api.get('/academic-records/my'),
+  getMySemester: (semCode) => api.get(`/academic-records/my/semester/${semCode}`),
+  getStudentRecords: (studentId) => api.get(`/academic-records/student/${studentId}`),
+  getStudentSemester: (studentId, semCode) => api.get(`/academic-records/student/${studentId}/semester/${semCode}`),
+  updateSubjectMarks: (studentId, data) => api.post(`/academic-records/student/${studentId}/marks`, data),
+  batchUpdateSemester: (studentId, data) => api.post(`/academic-records/student/${studentId}/batch-update`, data),
+  importCsv: (rows) => api.post('/academic-records/import/csv', rows),
+};
+
+// ── FACULTY SUBJECT ASSIGNMENTS ──
+export const facultyAssignmentAPI = {
+  getAll:             ()         => api.get('/faculty-assignments/all'),
+  getByFaculty:       (facultyId)=> api.get(`/faculty-assignments/faculty/${facultyId}`),
+  getMyAssignments:   ()         => api.get('/faculty-assignments/my'),
+  createAssignment:   (data)     => api.post('/faculty-assignments', data),
+  updateAssignment:   (id, data) => api.put(`/faculty-assignments/${id}`, data),
+  deleteAssignment:   (id)       => api.delete(`/faculty-assignments/${id}`),
 };
 
 // POST /announcements/send*
@@ -218,6 +235,15 @@ export const announcementAPI = {
   sendHoliday:      (data) => api.post('/announcements/send/holiday', data),
   sendExamReminder: (data) => api.post('/announcements/send/exam', data),
   sendEvent:        (data) => api.post('/announcements/send/event', data),
+};
+
+// ── STUDENT REGISTRATION SCANNER & EXCEL IMPORT ──
+export const registrationAPI = {
+  submitPublicRegistration: (data) => api.post('/registrations/public', data),
+  getAllRegistrations:      ()     => api.get('/registrations/all'),
+  getRegistrationStats:     ()     => api.get('/registrations/stats'),
+  importExcelStudents:      (data) => api.post('/registrations/import-excel', data),
+  deleteRegistration:       (id)   => api.delete(`/registrations/${id}`),
 };
 
 export default api;

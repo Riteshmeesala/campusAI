@@ -8,6 +8,7 @@ import {
 } from '@mui/material';
 import { Upload, CheckCircle, Info, RestartAlt } from '@mui/icons-material';
 import { userAPI, cgpaUploadAPI } from '../../services/api';
+import { updateSharedStudentCgpa } from '../../services/dataSync';
 import PageHeader from '../../components/shared/PageHeader';
 import { COLORS } from '../../theme/theme';
 import { toast } from 'react-toastify';
@@ -125,7 +126,13 @@ export default function PublishCGPAPage() {
       });
       const records = res.data.data || [];
       setPublished(records);
-      toast.success(`✅ ${records.length} CGPA record(s) published successfully!`);
+
+      // Single source of truth: Sync to cross-role shared store and emit live event
+      for (const [id, val] of Object.entries(studentCgpaMap)) {
+        updateSharedStudentCgpa(Number(id), val, semester === '' ? null : parseInt(semester), remarks);
+      }
+
+      toast.success(`✅ ${records.length || Object.keys(studentCgpaMap).length} CGPA record(s) updated successfully across Student, Faculty & Admin!`);
       handleReset();
     } catch (e) {
       toast.error(e.response?.data?.message || 'Failed to publish CGPA');

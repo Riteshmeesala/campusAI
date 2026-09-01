@@ -1,0 +1,135 @@
+version: '3.8'
+
+services:
+  # 1. MySQL Database
+  mysql:
+    image: mysql:8.0
+    container_name: campusiq-mysql
+    restart: always
+    environment:
+      MYSQL_DATABASE: campusiq_v6
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  # 2. Eureka Service Registry
+  eureka-server:
+    build:
+      context: ./backend
+      dockerfile: eureka-server/Dockerfile
+    container_name: campusiq-eureka
+    restart: always
+    ports:
+      - "8761:8761"
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+
+  # 3. API Gateway
+  api-gateway:
+    build:
+      context: ./backend
+      dockerfile: api-gateway/Dockerfile
+    container_name: campusiq-gateway
+    restart: always
+    ports:
+      - "8080:8080"
+    depends_on:
+      - eureka-server
+    environment:
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+
+  # 4. Auth & User Service
+  auth-service:
+    build:
+      context: ./backend
+      dockerfile: auth-service/Dockerfile
+    container_name: campusiq-auth
+    restart: always
+    ports:
+      - "8081:8081"
+    depends_on:
+      - mysql
+      - eureka-server
+    environment:
+      - DB_HOST=mysql
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+
+  # 5. Academic Service
+  academic-service:
+    build:
+      context: ./backend
+      dockerfile: academic-service/Dockerfile
+    container_name: campusiq-academic
+    restart: always
+    ports:
+      - "8082:8082"
+    depends_on:
+      - mysql
+      - eureka-server
+    environment:
+      - DB_HOST=mysql
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+
+  # 6. Assessment & Analytics Service
+  assessment-service:
+    build:
+      context: ./backend
+      dockerfile: assessment-service/Dockerfile
+    container_name: campusiq-assessment
+    restart: always
+    ports:
+      - "8083:8083"
+    depends_on:
+      - mysql
+      - eureka-server
+    environment:
+      - DB_HOST=mysql
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+
+  # 7. Finance & Payments Service
+  finance-service:
+    build:
+      context: ./backend
+      dockerfile: finance-service/Dockerfile
+    container_name: campusiq-finance
+    restart: always
+    ports:
+      - "8084:8084"
+    depends_on:
+      - mysql
+      - eureka-server
+    environment:
+      - DB_HOST=mysql
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+
+  # 8. Campus AI & Notifications Service
+  campus-ai-service:
+    build:
+      context: ./backend
+      dockerfile: campus-ai-service/Dockerfile
+    container_name: campusiq-ai
+    restart: always
+    ports:
+      - "8085:8085"
+    depends_on:
+      - mysql
+      - eureka-server
+    environment:
+      - DB_HOST=mysql
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
+
+  # 9. React Frontend
+  frontend:
+    build:
+      context: ./frontend
+    container_name: campusiq-frontend
+    restart: always
+    ports:
+      - "3000:80"
+    depends_on:
+      - api-gateway
+
+volumes:
+  mysql_data:
